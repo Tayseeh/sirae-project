@@ -1,0 +1,71 @@
+<!-- app/templates/dashboard.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Painel de Ocorrências</h2>
+<a href="{{ url_for('main.nova_ocorrencia') }}" class="btn-novo">+ Nova Ocorrência</a>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Aluno</th>
+                <th>Tipo</th>
+                <th>Status</th>
+                <th>Data</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in ocorrencias %}
+            <tr>
+                <td>{{ o.id }}</td>
+                <td>{{ o.aluno_nome }}</td>
+                <td>{{ o.tipo }}</td>
+                <td>
+                    <span class="status-{{ o.status|lower }}">
+                        {{ o.status }}
+                    </span>
+                </td>
+                <td>{{ o.data_registro.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>
+                    {% if o.status == 'Aberta' %}
+                    <a href="{{ url_for('main.encerrar_ocorrencia', id=o.id) }}" 
+                       class="btn-encerrar"
+                       onclick="return confirm('Encerrar esta ocorrência?')">
+                        Encerrar
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center;">Nenhuma ocorrência registrada</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.btn-novo {
+    display: inline-block;
+    background-color: #27ae60;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+.btn-encerrar {
+    background-color: #e67e22;
+    color: white;
+    padding: 5px 10px;
+    text-decoration: none;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+.status-aberta { color: #e67e22; font-weight: bold; }
+.status-fechada { color: #27ae60; font-weight: bold; }
+</style>
+{% endblock %}

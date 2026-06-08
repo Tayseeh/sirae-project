@@ -1,0 +1,26 @@
+<!-- app/templates/cadastro.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="form-container">
+    <h2>Nova Ocorrência</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Nome do Aluno:</label>
+        <input type="text" name="aluno_nome" required>
+
+        <label>Tipo:</label>
+        <select name="tipo" required>
+            <option value="Disciplinar">Disciplinar</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Financeiro">Financeiro</option>
+        </select>
+
+        <label>Descrição:</label>
+        <textarea name="descricao" rows="4" required></textarea>
+
+        <label>Anexo (opcional):</label>
+        <input type="file" name="anexo" accept=".pdf,.jpg,.png,.doc,.docx">
+
+        <button type="submit">Registrar</button>
+    </form>
+</div>
+{% endblock %}
