@@ -1,105 +1,38 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>SIRAE - Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        /* Reset completo para a página de login */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .login-wrapper {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-        }
-        
-        .login-card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            padding: 40px;
-        }
-        
-        .login-card h2 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            background: #27ae60;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        
-        .btn-login:hover {
-            background: #219150;
-        }
-        
-        .alert {
-            padding: 10px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-        }
-        
-        .danger {
-            background-color: #fed7d7;
-            color: #c53030;
-            border: 1px solid #fc8181;
-        }
-        
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIRAE – Acesso ao Sistema</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="login-wrapper">
-        <div class="login-card">
-            <h2>SIRAE - Login</h2>
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% for category, message in messages %}
-                    <div class="alert {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endwith %}
-            
-            {% block content %}{% endblock %}
-        </div>
+  <div class="login-wrap">
+    <div class="login-visual">
+      <div class="brand">
+        <span class="mark">S</span>
+        <span>SIRAE</span>
+      </div>
+      <h1>Registro e acompanhamento estudantil em um só lugar</h1>
+      <p>Controle de ocorrências do setor de apoio com consulta rápida, histórico de alterações, anexos e rastreabilidade conforme a LGPD.</p>
     </div>
+    <div class="login-form">
+      <span class="mark">S</span>
+      <h2>Acesso ao sistema</h2>
+      <p>Entre com seu perfil autorizado para registrar, consultar ou acompanhar ocorrências.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+
+      <div class="login-notice">
+        Acesso restrito a usuários autorizados. Os dados são tratados conforme as diretrizes da LGPD.
+      </div>
+    </div>
+  </div>
 </body>
 </html>

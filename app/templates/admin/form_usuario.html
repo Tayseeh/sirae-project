@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{% if usuario %}Editar Usuário{% else %}Novo Usuário{% endif %}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>{% if usuario %}Editar {{ usuario.nome }}{% else %}Novo usuário{% endif %}</h1>
+    <p class="subtitle">Apenas atendentes e coordenadores podem ser criados aqui.</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{{ url_for('admin.usuarios') }}" class="btn btn-secondary">Cancelar</a>
+    <button type="submit" form="form-usuario" class="btn btn-primary">
+      {% if usuario %}💾 Salvar{% else %}✅ Criar usuário{% endif %}
+    </button>
+  </div>
+</div>
+
+<div style="max-width:520px">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Dados do usuário</h2>
+      <p>A senha pode ser alterada a qualquer momento pelo administrador.</p>
+    </div>
+    <form id="form-usuario" method="POST">
+      <div class="form-grid">
+
+        <label class="lbl wide">Nome completo *
+          <input class="field" type="text" name="nome" required maxlength="100"
+                 value="{{ usuario.nome if usuario else '' }}">
+        </label>
+
+        <label class="lbl wide">E-mail institucional *
+          <input class="field" type="email" name="email" required
+                 value="{{ usuario.email if usuario else '' }}">
+        </label>
+
+        <label class="lbl">Perfil *
+          <select class="sel" name="perfil" required>
+            <option value="">Selecione...</option>
+            <option value="atendente"  {% if usuario and usuario.perfil == 'atendente'  %}selected{% endif %}>Atendente</option>
+            <option value="coordenacao" {% if usuario and usuario.perfil == 'coordenacao' %}selected{% endif %}>Coordenação</option>
+          </select>
+        </label>
+
+        <label class="lbl">Senha {% if not usuario %}*{% else %}(deixe em branco para manter){% endif %}
+          <input class="field" type="password" name="senha"
+                 {% if not usuario %}required{% endif %}
+                 placeholder="{% if usuario %}Nova senha (opcional){% else %}Mínimo 6 caracteres{% endif %}"
+                 minlength="6">
+        </label>
+
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

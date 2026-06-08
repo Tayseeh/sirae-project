@@ -1,31 +1,124 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>SIRAE - Gestão de Ocorrências</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIRAE — {% block title %}{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="{% if request.endpoint == 'auth.login' %}login-page{% endif %}">
-    {% if request.endpoint != 'auth.login' %}
-    <div class="sidebar">
-        <h2>SIRAE</h2>
-        <a href="{{ url_for('main.dashboard') }}">📊 Painel de Ocorrências</a>
-        <a href="{{ url_for('main.nova_ocorrencia') }}">➕ Nova Ocorrência</a>
-        
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('auth.logout') }}" class="logout">🚪 Sair do Sistema</a>
-        {% endif %}
+<body>
+<div class="app-shell">
+
+  <header class="topbar">
+    <a href="/" class="brand">
+      <div class="brand-logo">S</div>
+      <div>
+        <div class="brand-name">SIRAE</div>
+        <div class="brand-sub">Registro e Acompanhamento Estudantil · SENAI</div>
+      </div>
+    </a>
+    {% if current_user.is_authenticated %}
+    <div class="userbar">
+      <span class="role-badge
+        {% if current_user.perfil == 'admin' %}role-admin
+        {% elif current_user.perfil == 'coordenacao' %}role-coord
+        {% else %}role-atend{% endif %}">
+        {% if current_user.perfil == 'admin' %}Administrador
+        {% elif current_user.perfil == 'coordenacao' %}Coordenação
+        {% else %}Atendente{% endif %}
+      </span>
+      <span class="topbar-nome">{{ current_user.nome }}</span>
+      <div class="avatar">{{ current_user.nome[0]|upper }}</div>
     </div>
     {% endif %}
+  </header>
 
-    <div class="main-content {% if request.endpoint == 'auth.login' %}login-main{% endif %}">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                <div class="alert {{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endwith %}
-        
-        {% block content %}{% endblock %}
+  <aside class="sidebar">
+    {% if current_user.perfil == 'admin' %}
+      <div class="nav-section">
+        <div class="nav-label">Administração</div>
+        <a href="{{ url_for('admin.usuarios') }}" class="nav-item {% if 'admin.usuario' in request.endpoint %}active{% endif %}">
+          <span class="nav-icon">👥</span> Usuários
+        </a>
+        <a href="{{ url_for('admin.logs') }}" class="nav-item {% if request.endpoint == 'admin.logs' %}active{% endif %}">
+          <span class="nav-icon">🗒️</span> Logs de auditoria
+        </a>
+      </div>
+
+    {% elif current_user.perfil == 'atendente' %}
+      <div class="nav-section">
+        <div class="nav-label">Ocorrências</div>
+        <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+          <span class="nav-icon">📋</span> Painel
+        </a>
+        <a href="{{ url_for('main.nova_ocorrencia') }}" class="nav-item {% if request.endpoint == 'main.nova_ocorrencia' %}active{% endif %}">
+          <span class="nav-icon">➕</span> Nova ocorrência
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Alunos</div>
+        <a href="{{ url_for('alunos.listar') }}" class="nav-item {% if 'alunos' in request.endpoint and request.endpoint != 'alunos.novo' %}active{% endif %}">
+          <span class="nav-icon">🎓</span> Listar alunos
+        </a>
+        <a href="{{ url_for('alunos.novo') }}" class="nav-item {% if request.endpoint == 'alunos.novo' %}active{% endif %}">
+          <span class="nav-icon">➕</span> Novo aluno
+        </a>
+      </div>
+
+    {% elif current_user.perfil == 'coordenacao' %}
+      <div class="nav-section">
+        <div class="nav-label">Ocorrências</div>
+        <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+          <span class="nav-icon">📋</span> Painel
+        </a>
+        <a href="{{ url_for('main.nova_ocorrencia') }}" class="nav-item {% if request.endpoint == 'main.nova_ocorrencia' %}active{% endif %}">
+          <span class="nav-icon">➕</span> Nova ocorrência
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Alunos</div>
+        <a href="{{ url_for('alunos.listar') }}" class="nav-item {% if 'alunos' in request.endpoint and request.endpoint != 'alunos.novo' %}active{% endif %}">
+          <span class="nav-icon">🎓</span> Listar alunos
+        </a>
+        <a href="{{ url_for('alunos.novo') }}" class="nav-item {% if request.endpoint == 'alunos.novo' %}active{% endif %}">
+          <span class="nav-icon">➕</span> Novo aluno
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Gestão</div>
+        <a href="{{ url_for('main.relatorios') }}" class="nav-item {% if 'relatorio' in request.endpoint %}active{% endif %}">
+          <span class="nav-icon">📊</span> Relatórios
+        </a>
+      </div>
+    {% endif %}
+
+    <div class="nav-logout">
+      <a href="{{ url_for('auth.logout') }}" class="nav-item">
+        <span class="nav-icon">🚪</span> Sair
+      </a>
     </div>
+  </aside>
+
+  <main class="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+<script>
+document.querySelectorAll('form').forEach(f => {
+  f.addEventListener('submit', () => {
+    f.querySelectorAll('button[type=submit]').forEach(b => {
+      b.classList.add('btn-loading');
+      b.disabled = true;
+    });
+  });
+});
+</script>
 </body>
 </html>

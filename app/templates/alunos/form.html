@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}{% if aluno %}Editar Aluno{% else %}Novo Aluno{% endif %}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>{% if aluno %}Editar dados de {{ aluno.nome }}{% else %}Cadastro de aluno{% endif %}</h1>
+    <p class="subtitle">Campos com * são obrigatórios.</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{{ url_for('alunos.listar') }}" class="btn btn-secondary">Cancelar</a>
+    <button type="submit" form="form-aluno" class="btn btn-primary">
+      {% if aluno %}💾 Salvar Alterações{% else %}✅ Cadastrar Aluno{% endif %}
+    </button>
+  </div>
+</div>
+
+<form id="form-aluno" method="POST" enctype="multipart/form-data">
+<div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">
+
+  <!-- FOTO -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <div class="panel-head"><h2>Foto do aluno</h2></div>
+      <div style="padding:20px;text-align:center">
+        <div id="foto-preview" style="
+          width:160px;height:160px;border-radius:50%;
+          background:#f1f5f9;border:3px dashed #cbd5e1;
+          display:flex;align-items:center;justify-content:center;
+          margin:0 auto 16px;overflow:hidden;cursor:pointer;
+          transition:border-color .2s" onclick="document.getElementById('foto-input').click()">
+          {% if aluno and aluno.foto %}
+            <img src="{{ url_for('static', filename=aluno.foto) }}"
+                 style="width:100%;height:100%;object-fit:cover" id="foto-img">
+          {% else %}
+            <div id="foto-placeholder">
+              <div style="font-size:40px">📷</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:6px">Clique para<br>adicionar foto</div>
+            </div>
+          {% endif %}
+        </div>
+        <input type="file" id="foto-input" name="foto"
+               accept=".jpg,.jpeg,.png,.webp" style="display:none"
+               onchange="previewFoto(this)">
+        <p style="font-size:12px;color:var(--muted)">JPG, PNG ou WEBP<br>Máx. 5MB</p>
+        {% if aluno and aluno.foto %}
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px"
+                onclick="document.getElementById('foto-input').click()">Trocar foto</button>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if aluno %}
+    <div class="panel">
+      <div class="panel-head"><h2>Resumo</h2></div>
+      <div style="padding:16px;font-size:13px;display:flex;flex-direction:column;gap:10px">
+        <div><span style="color:var(--muted)">Cadastrado em</span><br>
+          <strong>{{ aluno.criado_em.strftime('%d/%m/%Y') }}</strong></div>
+        <div><span style="color:var(--muted)">Ocorrências</span><br>
+          <strong>{{ aluno.total_ocorrencias }}</strong> total
+          {% if aluno.ocorrencias_ativas %}
+            · <span style="color:var(--amber)">{{ aluno.ocorrencias_ativas|length }} ativa(s)</span>
+          {% endif %}
+        </div>
+        {% if aluno.menor_de_idade %}
+        <div style="padding:8px;background:var(--amber-soft);border-radius:6px;color:var(--amber);font-weight:700;font-size:12px">
+          ⚠️ Aluno menor de idade
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- CAMPOS -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- Dados pessoais -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Dados pessoais</h2>
+        <p>Informações de identificação do aluno.</p>
+      </div>
+      <div class="form-grid">
+
+        <label class="lbl wide">Nome completo *
+          <input class="field" type="text" name="nome" required maxlength="100"
+                 value="{{ form.get('nome', '') }}"
+                 placeholder="Nome completo do aluno">
+        </label>
+
+        <label class="lbl">Data de nascimento
+          <input class="field" type="date" name="data_nascimento"
+                 value="{{ form.get('data_nascimento', '') }}"
+                 max="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+        </label>
+
+        <label class="lbl">CPF
+          <input class="field" type="text" name="cpf" id="cpf"
+                 value="{{ form.get('cpf', '') }}"
+                 placeholder="000.000.000-00"
+                 maxlength="14" oninput="mascaraCPF(this)">
+          <span class="campo-hint">11 dígitos — deixe em branco se não tiver</span>
+        </label>
+
+        <label class="lbl">E-mail
+          <input class="field" type="email" name="email" maxlength="100"
+                 value="{{ form.get('email', '') }}"
+                 placeholder="aluno@email.com">
+        </label>
+
+        <label class="lbl">Telefone / WhatsApp
+          <input class="field" type="text" name="telefone" id="telefone"
+                 value="{{ form.get('telefone', '') }}"
+                 placeholder="(48) 99999-9999"
+                 maxlength="15" oninput="mascaraTel(this)">
+          <span class="campo-hint">Com DDD · 10 ou 11 dígitos</span>
+        </label>
+
+      </div>
+    </div>
+
+    <!-- Dados acadêmicos -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Dados acadêmicos</h2>
+        <p>Nível de ensino, série, turma e turno.</p>
+      </div>
+      <div class="form-grid">
+
+        <label class="lbl">Matrícula
+          <input class="field" type="text" name="matricula" maxlength="20"
+                 value="{{ form.get('matricula', '') }}"
+                 placeholder="Ex: 2026-00001"
+                 oninput="this.value=this.value.replace(/[^a-zA-Z0-9\-]/g,'')">
+          <span class="campo-hint">Máximo 20 caracteres</span>
+        </label>
+
+        <label class="lbl">Nível de ensino
+          <select class="sel" name="nivel" id="nivel" onchange="atualizarSeries()">
+            <option value="">Selecione...</option>
+            <option value="fundamental" {% if form.get('nivel')=='fundamental' %}selected{% endif %}>Ensino Fundamental</option>
+            <option value="medio"       {% if form.get('nivel')=='medio'       %}selected{% endif %}>Ensino Médio</option>
+          </select>
+        </label>
+
+        <label class="lbl">Série / Ano
+          <select class="sel" name="serie" id="serie">
+            <option value="">Selecione o nível primeiro...</option>
+          </select>
+        </label>
+
+        <label class="lbl">Turma
+          <select class="sel" name="turma">
+            <option value="">Selecione...</option>
+            {% for t in ['A','B','C','D','E','F'] %}
+            <option value="{{ t }}" {% if form.get('turma')==t %}selected{% endif %}>Turma {{ t }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="lbl">Turno
+          <select class="sel" name="turno">
+            <option value="">Selecione...</option>
+            <option value="manhã"  {% if form.get('turno')=='manhã'  %}selected{% endif %}>Manhã</option>
+            <option value="tarde"  {% if form.get('turno')=='tarde'  %}selected{% endif %}>Tarde</option>
+            <option value="noite"  {% if form.get('turno')=='noite'  %}selected{% endif %}>Noite</option>
+          </select>
+        </label>
+
+      </div>
+    </div>
+
+    <!-- Responsável -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Responsável</h2>
+        <p>Obrigatório para alunos menores de 18 anos.</p>
+      </div>
+      <div class="form-grid">
+
+        <label class="lbl wide">Nome do responsável
+          <input class="field" type="text" name="responsavel_nome" maxlength="100"
+                 value="{{ form.get('responsavel_nome', '') }}"
+                 placeholder="Nome completo do responsável">
+        </label>
+
+        <label class="lbl">Parentesco
+          <select class="sel" name="responsavel_parentesco">
+            <option value="">Selecione...</option>
+            {% for p in ['Pai','Mãe','Avô','Avó','Tio','Tia','Cônjuge','Responsável legal','Outro'] %}
+            <option value="{{ p }}" {% if form.get('responsavel_parentesco')==p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="lbl">CPF do responsável
+          <input class="field" type="text" name="responsavel_cpf" id="resp_cpf"
+                 value="{{ form.get('responsavel_cpf', '') }}"
+                 placeholder="000.000.000-00"
+                 maxlength="14" oninput="mascaraCPF(this)">
+        </label>
+
+        <label class="lbl">Telefone do responsável
+          <input class="field" type="text" name="responsavel_contato" id="resp_tel"
+                 value="{{ form.get('responsavel_contato', '') }}"
+                 placeholder="(48) 99999-9999"
+                 maxlength="15" oninput="mascaraTel(this)">
+          <span class="campo-hint">Com DDD · 10 ou 11 dígitos</span>
+        </label>
+
+        <label class="lbl wide">E-mail do responsável
+          <input class="field" type="email" name="responsavel_email" maxlength="100"
+                 value="{{ form.get('responsavel_email', '') }}"
+                 placeholder="responsavel@email.com">
+        </label>
+
+      </div>
+    </div>
+
+  </div><!-- /campos -->
+</div><!-- /grid -->
+</form>
+
+<style>
+.campo-hint { font-size:11px; color:var(--muted); font-weight:400; margin-top:2px; }
+</style>
+
+<script>
+// ── Máscaras ──────────────────────────────────────────
+function mascaraCPF(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/^(\d{3})(\d{1,3})/, '$1.$2');
+  el.value = v;
+}
+
+function mascaraTel(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length === 11)
+    v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  else if (v.length >= 10)
+    v = v.replace(/^(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  else if (v.length > 6)
+    v = v.replace(/^(\d{2})(\d{4,5})(\d*)/, '($1) $2-$3');
+  else if (v.length > 2)
+    v = v.replace(/^(\d{2})(\d+)/, '($1) $2');
+  el.value = v;
+}
+
+// ── Séries por nível ──────────────────────────────────
+const seriesPorNivel = {
+  fundamental: ['6º ano EF','7º ano EF','8º ano EF','9º ano EF'],
+  medio:       ['1º ano EM','2º ano EM','3º ano EM'],
+};
+const serieAtual = "{{ form.get('serie', '') }}";
+
+function atualizarSeries() {
+  const nivel = document.getElementById('nivel').value;
+  const sel = document.getElementById('serie');
+  sel.innerHTML = '<option value="">Selecione...</option>';
+  (seriesPorNivel[nivel] || []).forEach(s => {
+    const op = document.createElement('option');
+    op.value = s;
+    op.textContent = s;
+    if (s === serieAtual) op.selected = true;
+    sel.appendChild(op);
+  });
+  if (!nivel) sel.innerHTML = '<option value="">Selecione o nível primeiro...</option>';
+}
+
+// Inicializa séries se já houver nível salvo
+window.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('nivel').value) atualizarSeries();
+});
+
+// ── Preview de foto ───────────────────────────────────
+function previewFoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (file.size > 5 * 1024 * 1024) {
+    alert('A foto deve ter no máximo 5MB.');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const div = document.getElementById('foto-preview');
+    div.innerHTML = `<img src="${e.target.result}"
+      style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  };
+  reader.readAsDataURL(file);
+}
+</script>
+
+{% endblock %}

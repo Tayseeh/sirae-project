@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Gerenciamento de usuários</h1>
+    <p class="subtitle">Crie e gerencie contas de atendentes e coordenadores.</p>
+  </div>
+  <a href="{{ url_for('admin.novo_usuario') }}" class="btn btn-primary">+ Novo Usuário</a>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>E-mail</th>
+        <th>Perfil</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in usuarios %}
+      <tr>
+        <td>
+          <div class="avatar" style="display:inline-flex;margin-right:10px;vertical-align:middle">{{ u.nome[0]|upper }}</div>
+          <strong>{{ u.nome }}</strong>
+          {% if u.perfil == 'admin' %}<span style="font-size:11px;color:var(--muted)"> (você)</span>{% endif %}
+        </td>
+        <td style="color:var(--muted)">{{ u.email }}</td>
+        <td>
+          {% if u.perfil == 'coordenacao' %}
+            <span class="pill" style="background:var(--blue-soft);color:var(--blue)">Coordenação</span>
+          {% elif u.perfil == 'atendente' %}
+            <span class="pill" style="background:var(--teal-soft);color:var(--teal)">Atendente</span>
+          {% else %}
+            <span class="pill" style="background:#f1f5f9;color:#475569">Admin</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.ativo %}
+            <span class="pill pill-done">Ativo</span>
+          {% else %}
+            <span class="pill pill-closed">Inativo</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.perfil != 'admin' %}
+          <div class="actions">
+            <a href="{{ url_for('admin.editar_usuario', id=u.id) }}" class="btn btn-ghost btn-sm">✏️ Editar</a>
+            {% if u.ativo %}
+            <a href="{{ url_for('admin.desativar_usuario', id=u.id) }}"
+               class="btn btn-sm" style="background:var(--red-soft);color:var(--red)"
+               onclick="return confirm('Desativar {{ u.nome }}?')">Desativar</a>
+            {% endif %}
+          </div>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

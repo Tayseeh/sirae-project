@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SIRAE — Sistema de Registro e Acompanhamento Estudantil</title>
+  <title>SIRAE — Definir nova senha</title>
   <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -11,13 +11,13 @@
 <div class="login-wrap">
   <div class="login-card">
 
-    <div class="login-header">
+    <div class="login-header" style="background:var(--amber)">
       <div class="login-logo">
-        <div class="login-logo-mark">S</div>
+        <div class="login-logo-mark" style="background:rgba(0,0,0,.15)">S</div>
         <span class="login-logo-name">SIRAE · SENAI</span>
       </div>
-      <h1>Acesso ao sistema</h1>
-      <p>SIRAE — Sistema de Registro e Acompanhamento Estudantil · SENAI</p>
+      <h1>Defina sua nova senha</h1>
+      <p>Você está usando uma senha temporária. Cadastre uma senha pessoal para continuar.</p>
     </div>
 
     <div class="login-body">
@@ -27,19 +27,18 @@
         {% endfor %}
       {% endwith %}
 
-      <form method="POST" id="login-form">
-        <label class="lbl">E-mail
-          <input class="field" type="email" name="email"
-                 placeholder="seu@email.com" required autofocus>
+      <form method="POST">
+        <label class="lbl">Nova senha
+          <input class="field" type="password" name="nova_senha"
+                 placeholder="Mínimo 6 caracteres" required minlength="6" autofocus>
         </label>
-        <label class="lbl">Senha
-          <input class="field" type="password" name="password"
-                 placeholder="••••••••" required>
+        <label class="lbl">Confirmar nova senha
+          <input class="field" type="password" name="confirmar"
+                 placeholder="Repita a senha" required minlength="6">
         </label>
-        <div class="login-actions">
-          <button type="submit" class="btn btn-primary" id="btn-submit"
-                  onclick="this.classList.add('btn-loading');this.textContent='Entrando'">
-            Entrar
+        <div class="login-actions" style="margin-top:20px">
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">
+            Salvar nova senha
           </button>
         </div>
       </form>

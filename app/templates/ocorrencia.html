@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Ocorrência #{{ '%04d' % ocorrencia.id }}{% endblock %}
+{% block content %}
+
+{% if not e_responsavel and ocorrencia.status != 'encerrada' %}
+<div class="alert info">
+  Você está visualizando esta ocorrência. Somente <strong>{{ ocorrencia.responsavel.nome }}</strong> pode editá-la ou encaminhá-la.
+</div>
+{% endif %}
+
+<div class="page-head">
+  <div>
+    <h1>
+      Ocorrência <span style="color:var(--text-3);font-weight:400">#{{ '%04d' % ocorrencia.id }}</span>
+    </h1>
+    <p class="subtitle">{{ ocorrencia.aluno.nome }} · {{ ocorrencia.tipo }} · Aberta em {{ ocorrencia.data_criacao.strftime('%d/%m/%Y') }}</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">← Voltar</a>
+    {% if ocorrencia.status != 'encerrada' and e_responsavel %}
+      <a href="{{ url_for('main.editar_ocorrencia', id=ocorrencia.id) }}" class="btn btn-secondary">Editar</a>
+    {% endif %}
+    {% if current_user.is_coordenador and ocorrencia.status != 'encerrada' %}
+      <a href="{{ url_for('main.encerrar_ocorrencia', id=ocorrencia.id) }}" class="btn btn-danger">Encerrar</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="split">
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <!-- Dados principais -->
+    <div class="panel">
+      <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h2>{{ ocorrencia.tipo }}</h2>
+          <p>{{ ocorrencia.aluno.nome }}{% if ocorrencia.aluno.serie %} · {{ ocorrencia.aluno.serie }}{% endif %}{% if ocorrencia.aluno.turma %} · Turma {{ ocorrencia.aluno.turma }}{% endif %}</p>
+        </div>
+        {% if ocorrencia.status == 'aberta' %}<span class="pill pill-open">Aberta</span>
+        {% elif ocorrencia.status == 'em_acompanhamento' %}<span class="pill pill-acomp">Em acompanhamento</span>
+        {% else %}<span class="pill pill-done">Encerrada</span>{% endif %}
+      </div>
+
+      <div style="padding:18px 20px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Descrição</div>
+        <p style="font-size:14px;line-height:1.65;color:var(--text-2)">{{ ocorrencia.descricao }}</p>
+      </div>
+
+      {% if ocorrencia.anexo_arquivo %}
+      <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">📎</span>
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em">Anexo</div>
+          <span style="font-size:13px;color:var(--text-2)">{{ ocorrencia.anexo_arquivo.split('_', 2)[-1] }}</span>
+        </div>
+        <a href="{{ url_for('main.ver_anexo', filename=ocorrencia.anexo_arquivo) }}"
+           target="_blank" class="btn btn-ghost btn-sm">Abrir ↗</a>
+      </div>
+      {% endif %}
+
+      <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Criada por</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text-1)">{{ ocorrencia.criado_por.nome }}</div>
+          <div style="font-size:12px;color:var(--text-3)">{{ ocorrencia.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Responsável atual</div>
+          <div style="font-size:14px;font-weight:500;color:var(--green-text)">{{ ocorrencia.responsavel.nome }}</div>
+          <div style="font-size:12px;color:var(--text-3)">{{ ocorrencia.responsavel.perfil|capitalize }}</div>
+        </div>
+        {% if ocorrencia.data_encerramento %}
+        <div style="grid-column:1/-1">
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Encerrada em</div>
+          <div style="font-size:14px;font-weight:500;color:var(--green-text)">{{ ocorrencia.data_encerramento.strftime('%d/%m/%Y às %H:%M') }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Encaminhar -->
+    {% if ocorrencia.status != 'encerrada' and e_responsavel %}
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Encaminhar ocorrência</h2>
+        <p>Transfira a responsabilidade para outro atendente ou coordenador.</p>
+      </div>
+      <form method="POST" action="{{ url_for('main.encaminhar_ocorrencia', id=ocorrencia.id) }}">
+        <div class="form-grid">
+          <label class="lbl wide">Encaminhar para
+            <select class="sel" name="responsavel_id" required>
+              <option value="">Selecione…</option>
+              {% for u in opcoes %}
+              <option value="{{ u.id }}">
+                {{ u.nome }} — {% if u.perfil == 'coordenacao' %}Coordenação{% else %}Atendente{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="lbl wide">Motivo
+            <textarea class="field" name="motivo" rows="2"
+              placeholder="Descreva o motivo do encaminhamento…"></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-sm">Encaminhar →</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Histórico -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Histórico</h2>
+      <p>Linha do tempo completa da ocorrência.</p>
+    </div>
+    <div class="audit-list">
+      {% for log in ocorrencia.logs|sort(attribute='data_hora', reverse=true) %}
+      <div class="audit-entry">
+        <span class="audit-dot
+          {% if log.acao == 'criada' %}green
+          {% elif log.acao == 'encaminhada' %}blue
+          {% elif log.acao == 'atualizada' %}amber
+          {% elif log.acao == 'encerrada' %}red
+          {% endif %}"></span>
+        <div>
+          <strong>
+            {% if log.acao == 'criada' %}Criada
+            {% elif log.acao == 'encaminhada' %}Encaminhada
+            {% elif log.acao == 'atualizada' %}Atualizada
+            {% elif log.acao == 'encerrada' %}Encerrada
+            {% else %}{{ log.acao|capitalize }}{% endif %}
+            <span style="font-weight:400;color:var(--text-3);font-size:12px"> · {{ log.usuario.nome }}</span>
+          </strong>
+          {% if log.descricao_acao %}
+          <p style="margin-top:3px;white-space:pre-line">{{
+            log.descricao_acao
+            | replace('. Motivo: ', '\nMotivo: ')
+            | replace('. Alterações: ', '\nAlterações: ')
+            | replace('. Resolução: ', '\nResolução: ')
+            | replace(' | ', '\n→ ')
+          }}</p>
+          {% endif %}
+          <p style="font-size:11.5px;margin-top:5px;color:var(--text-3)">
+            {{ log.data_hora.strftime('%d/%m/%Y às %H:%M') }}
+          </p>
+        </div>
+      </div>
+      {% else %}
+      <p style="padding:20px;color:var(--text-3);font-size:13px">Sem histórico registrado.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

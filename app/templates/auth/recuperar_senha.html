@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SIRAE — Sistema de Registro e Acompanhamento Estudantil</title>
+  <title>SIRAE — Recuperar senha</title>
   <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -16,8 +16,8 @@
         <div class="login-logo-mark">S</div>
         <span class="login-logo-name">SIRAE · SENAI</span>
       </div>
-      <h1>Acesso ao sistema</h1>
-      <p>SIRAE — Sistema de Registro e Acompanhamento Estudantil · SENAI</p>
+      <h1>Recuperar senha</h1>
+      <p>Informe seu e-mail e uma senha temporária será gerada.</p>
     </div>
 
     <div class="login-body">
@@ -27,20 +27,17 @@
         {% endfor %}
       {% endwith %}
 
-      <form method="POST" id="login-form">
-        <label class="lbl">E-mail
+      <form method="POST">
+        <label class="lbl">E-mail institucional
           <input class="field" type="email" name="email"
                  placeholder="seu@email.com" required autofocus>
         </label>
-        <label class="lbl">Senha
-          <input class="field" type="password" name="password"
-                 placeholder="••••••••" required>
-        </label>
-        <div class="login-actions">
-          <button type="submit" class="btn btn-primary" id="btn-submit"
-                  onclick="this.classList.add('btn-loading');this.textContent='Entrando'">
-            Entrar
-          </button>
+        <div class="login-actions" style="justify-content:space-between">
+          <a href="{{ url_for('auth.login') }}"
+             style="font-size:13px;color:var(--text-3);text-decoration:none">
+            ← Voltar ao login
+          </a>
+          <button type="submit" class="btn btn-primary">Gerar senha temporária</button>
         </div>
       </form>
     </div>

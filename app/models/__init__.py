@@ -1,5 +1,3 @@
-# app/models/__init__.py
-from .usuario import Usuario
-from .ocorrencia import Ocorrencia
-
-__all__ = ['Usuario', 'Ocorrencia']
+from app.models.aluno import Aluno
+from app.models.usuario import Usuario
+from app.models.ocorrencia import Ocorrencia, LogAuditoria

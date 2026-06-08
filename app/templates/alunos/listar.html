@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Alunos{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Alunos cadastrados</h1>
+    <p class="subtitle">{{ alunos|length }} aluno{{ 's' if alunos|length != 1 }} encontrado{{ 's' if alunos|length != 1 }}.</p>
+  </div>
+  <a href="{{ url_for('alunos.novo') }}" class="btn btn-primary">+ Novo Aluno</a>
+</div>
+
+<form method="GET">
+  <div class="toolbar">
+    <input class="field field-search" type="text" name="nome"
+           placeholder="🔍  Buscar por nome ou matrícula..."
+           value="{{ filtro_nome }}">
+    <select class="sel" name="nivel" style="width:180px">
+      <option value="">Todos os níveis</option>
+      <option value="fundamental" {% if filtro_nivel=='fundamental' %}selected{% endif %}>Ensino Fundamental</option>
+      <option value="medio"       {% if filtro_nivel=='medio'       %}selected{% endif %}>Ensino Médio</option>
+    </select>
+    <select class="sel" name="turno" style="width:130px">
+      <option value="">Todos os turnos</option>
+      <option value="manhã"  {% if filtro_turno=='manhã'  %}selected{% endif %}>Manhã</option>
+      <option value="tarde"  {% if filtro_turno=='tarde'  %}selected{% endif %}>Tarde</option>
+      <option value="noite"  {% if filtro_turno=='noite'  %}selected{% endif %}>Noite</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+    <a href="{{ url_for('alunos.listar') }}" class="btn btn-secondary btn-sm">Limpar</a>
+  </div>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:56px"></th>
+        <th>Aluno</th>
+        <th>Matrícula</th>
+        <th>Nível / Série</th>
+        <th>Responsável</th>
+        <th>Ocorrências</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in alunos %}
+      <tr>
+        <!-- Mini foto -->
+        <td style="padding:10px 12px">
+          <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;
+                      background:var(--teal-soft);border:2px solid var(--line);
+                      display:flex;align-items:center;justify-content:center;
+                      font-weight:800;color:var(--teal);font-size:15px">
+            {% if a.foto %}
+              <img src="{{ url_for('static', filename=a.foto) }}"
+                   style="width:100%;height:100%;object-fit:cover">
+            {% else %}
+              {{ a.nome[0]|upper }}
+            {% endif %}
+          </div>
+        </td>
+        <td class="student-cell">
+          <strong>{{ a.nome }}</strong>
+          {% if a.idade %}<small>{{ a.idade }} anos
+            {% if a.menor_de_idade %} · <span style="color:var(--amber)">Menor</span>{% endif %}
+          </small>{% endif %}
+        </td>
+        <td style="color:var(--muted);font-size:13px;font-weight:700">{{ a.matricula or '—' }}</td>
+        <td>
+          <span style="font-size:14px">{{ a.serie or '—' }}</span>
+          {% if a.turma or a.turno %}
+          <small style="color:var(--muted);display:block">
+            {% if a.turma %}Turma {{ a.turma }}{% endif %}
+            {% if a.turno %} · {{ a.turno }}{% endif %}
+          </small>
+          {% endif %}
+        </td>
+        <td>
+          {% if a.responsavel_nome %}
+            <span style="font-size:14px">{{ a.responsavel_nome }}</span>
+            {% if a.responsavel_contato %}
+              <small style="color:var(--muted);display:block">{{ a.responsavel_contato }}</small>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if a.total_ocorrencias > 0 %}
+            <span class="pill {% if a.ocorrencias_ativas %}pill-open{% else %}pill-done{% endif %}">
+              {{ a.total_ocorrencias }} ocorrência{{ 's' if a.total_ocorrencias > 1 }}
+            </span>
+          {% else %}
+            <span style="color:var(--muted);font-size:13px">Nenhuma</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <a href="{{ url_for('alunos.perfil', id=a.id) }}" class="btn btn-ghost btn-sm">Ver perfil</a>
+            <a href="{{ url_for('alunos.editar', id=a.id) }}" class="btn btn-ghost btn-sm">✏️</a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td class="td-empty" colspan="7">
+          <div class="empty-state">
+            <div class="icon">🎓</div>
+            <p>Nenhum aluno cadastrado. <a href="{{ url_for('alunos.novo') }}" style="color:var(--teal)">Cadastrar agora</a>.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
