@@ -1,0 +1,17 @@
+# Ignorar ambiente virtual Python
+venv/
+env/
+*.pyc
+__pycache__/
+
+# Ignorar arquivos de configuração com senhas
+config.py
+.env
+
+# Ignorar uploads de usuários (para não lotar o GitHub)
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+
+# Ignorar arquivos do sistema operacional
+.DS_Store
+Thumbs.db
