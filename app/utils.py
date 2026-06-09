@@ -1,10 +1,9 @@
 from functools import wraps
-from flask import abort, flash, redirect, url_for
+from flask import flash, redirect, url_for
 from flask_login import current_user
 
 
 def requer_perfil(*perfis):
-    """Decorator — bloqueia acesso se o perfil do usuário não estiver na lista."""
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -16,12 +15,12 @@ def requer_perfil(*perfis):
     return decorator
 
 
-# Atalhos
 def apenas_admin(f):
     return requer_perfil('admin')(f)
 
 def apenas_coordenador(f):
     return requer_perfil('coordenacao')(f)
 
+# Atendente + Pedagogo + Coordenação (todos exceto admin)
 def nao_admin(f):
-    return requer_perfil('atendente', 'coordenacao')(f)
+    return requer_perfil('atendente', 'coordenacao', 'pedagogia')(f)

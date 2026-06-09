@@ -1,118 +1,99 @@
+{% from 'icons.html' import icon %}
 {% extends "base.html" %}
 {% block title %}Ocorrência #{{ '%04d' % ocorrencia.id }}{% endblock %}
 {% block content %}
 
 {% if not e_responsavel and ocorrencia.status != 'encerrada' %}
 <div class="alert info">
-  Você está visualizando esta ocorrência. Somente <strong>{{ ocorrencia.responsavel.nome }}</strong> pode editá-la ou encaminhá-la.
+  Você está visualizando esta ocorrência. Somente <strong>{{ ocorrencia.responsavel.nome }}</strong> pode registrar andamentos ou encerrá-la.
 </div>
 {% endif %}
 
+<!-- Cabeçalho -->
 <div class="page-head">
   <div>
-    <h1>
-      Ocorrência <span style="color:var(--text-3);font-weight:400">#{{ '%04d' % ocorrencia.id }}</span>
-    </h1>
-    <p class="subtitle">{{ ocorrencia.aluno.nome }} · {{ ocorrencia.tipo }} · Aberta em {{ ocorrencia.data_criacao.strftime('%d/%m/%Y') }}</p>
+    <h1>Ocorrência <span style="color:var(--text-3);font-weight:400">#{{ '%04d' % ocorrencia.id }}</span></h1>
+    <p class="subtitle">
+      <a href="{{ url_for('alunos.perfil', id=ocorrencia.aluno_id) }}"
+         style="color:var(--green-text);text-decoration:none;font-weight:500">{{ ocorrencia.aluno.nome }}</a>
+      · {{ ocorrencia.tipo }}
+      {% if ocorrencia.aluno.serie %} · {{ ocorrencia.aluno.serie }}{% endif %}
+      {% if ocorrencia.aluno.turma %} · Turma {{ ocorrencia.aluno.turma }}{% endif %}
+    </p>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">← Voltar</a>
-    {% if ocorrencia.status != 'encerrada' and e_responsavel %}
-      <a href="{{ url_for('main.editar_ocorrencia', id=ocorrencia.id) }}" class="btn btn-secondary">Editar</a>
-    {% endif %}
-    {% if current_user.is_coordenador and ocorrencia.status != 'encerrada' %}
-      <a href="{{ url_for('main.encerrar_ocorrencia', id=ocorrencia.id) }}" class="btn btn-danger">Encerrar</a>
-    {% endif %}
+  <div style="display:flex;align-items:center;gap:10px">
+    {% if ocorrencia.status == 'aberta' %}<span class="pill pill-open">Aberta</span>
+    {% elif ocorrencia.status == 'em_andamento' %}<span class="pill pill-andamento">Em andamento</span>
+    {% else %}<span class="pill pill-done">Encerrada</span>{% endif %}
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">{{ icon('arrow-left', 13) }} Voltar</a>
   </div>
 </div>
 
-<div class="split">
-  <div style="display:flex;flex-direction:column;gap:14px">
+<!-- Faixa de metadados — largura total, compacta -->
+<div class="panel" style="margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0;divide:var(--border)">
 
-    <!-- Dados principais -->
-    <div class="panel">
-      <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <h2>{{ ocorrencia.tipo }}</h2>
-          <p>{{ ocorrencia.aluno.nome }}{% if ocorrencia.aluno.serie %} · {{ ocorrencia.aluno.serie }}{% endif %}{% if ocorrencia.aluno.turma %} · Turma {{ ocorrencia.aluno.turma }}{% endif %}</p>
-        </div>
-        {% if ocorrencia.status == 'aberta' %}<span class="pill pill-open">Aberta</span>
-        {% elif ocorrencia.status == 'em_acompanhamento' %}<span class="pill pill-acomp">Em acompanhamento</span>
-        {% else %}<span class="pill pill-done">Encerrada</span>{% endif %}
-      </div>
-
-      <div style="padding:18px 20px;border-bottom:1px solid var(--border)">
-        <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Descrição</div>
-        <p style="font-size:14px;line-height:1.65;color:var(--text-2)">{{ ocorrencia.descricao }}</p>
-      </div>
-
+    <!-- Descrição -->
+    <div style="padding:16px 20px;border-right:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Descrição original</div>
+      <p style="font-size:14px;line-height:1.6;color:var(--text-2)">{{ ocorrencia.descricao }}</p>
       {% if ocorrencia.anexo_arquivo %}
-      <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-        <span style="font-size:18px">📎</span>
-        <div style="flex:1">
-          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em">Anexo</div>
-          <span style="font-size:13px;color:var(--text-2)">{{ ocorrencia.anexo_arquivo.split('_', 2)[-1] }}</span>
-        </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:7px">
+        {{ icon('paperclip', 14) }}
+        <span style="font-size:12.5px;color:var(--text-3)">{{ ocorrencia.anexo_arquivo.split('_', 2)[-1] }}</span>
         <a href="{{ url_for('main.ver_anexo', filename=ocorrencia.anexo_arquivo) }}"
-           target="_blank" class="btn btn-ghost btn-sm">Abrir ↗</a>
+           target="_blank" style="font-size:12px;color:var(--green-text);text-decoration:none">Abrir ↗</a>
       </div>
       {% endif %}
-
-      <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div>
-          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Criada por</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text-1)">{{ ocorrencia.criado_por.nome }}</div>
-          <div style="font-size:12px;color:var(--text-3)">{{ ocorrencia.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Responsável atual</div>
-          <div style="font-size:14px;font-weight:500;color:var(--green-text)">{{ ocorrencia.responsavel.nome }}</div>
-          <div style="font-size:12px;color:var(--text-3)">{{ ocorrencia.responsavel.perfil|capitalize }}</div>
-        </div>
-        {% if ocorrencia.data_encerramento %}
-        <div style="grid-column:1/-1">
-          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Encerrada em</div>
-          <div style="font-size:14px;font-weight:500;color:var(--green-text)">{{ ocorrencia.data_encerramento.strftime('%d/%m/%Y às %H:%M') }}</div>
-        </div>
-        {% endif %}
-      </div>
     </div>
 
-    <!-- Encaminhar -->
-    {% if ocorrencia.status != 'encerrada' and e_responsavel %}
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Encaminhar ocorrência</h2>
-        <p>Transfira a responsabilidade para outro atendente ou coordenador.</p>
+    <!-- Criada por + Responsável -->
+    <div style="padding:16px 20px;border-right:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:16px;align-content:start">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Criada por</div>
+        <div style="font-size:13.5px;font-weight:500">{{ ocorrencia.criado_por.nome }}</div>
+        <div style="font-size:12px;color:var(--text-3)">{{ ocorrencia.data_criacao.strftime('%d/%m/%Y %H:%M') }}</div>
       </div>
-      <form method="POST" action="{{ url_for('main.encaminhar_ocorrencia', id=ocorrencia.id) }}">
-        <div class="form-grid">
-          <label class="lbl wide">Encaminhar para
-            <select class="sel" name="responsavel_id" required>
-              <option value="">Selecione…</option>
-              {% for u in opcoes %}
-              <option value="{{ u.id }}">
-                {{ u.nome }} — {% if u.perfil == 'coordenacao' %}Coordenação{% else %}Atendente{% endif %}
-              </option>
-              {% endfor %}
-            </select>
-          </label>
-          <label class="lbl wide">Motivo
-            <textarea class="field" name="motivo" rows="2"
-              placeholder="Descreva o motivo do encaminhamento…"></textarea>
-          </label>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary btn-sm">Encaminhar →</button>
-        </div>
-      </form>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Responsável atual</div>
+        <div style="font-size:13.5px;font-weight:500;color:var(--green-text)">{{ ocorrencia.responsavel.nome }}</div>
+        <div style="font-size:12px;color:var(--text-3)">{{ ocorrencia.responsavel.perfil|capitalize }}</div>
+      </div>
+      {% if ocorrencia.data_encerramento %}
+      <div style="grid-column:1/-1">
+        <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Encerrada em</div>
+        <div style="font-size:13.5px;font-weight:500;color:var(--red-text)">{{ ocorrencia.data_encerramento.strftime('%d/%m/%Y %H:%M') }}</div>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
+
+    <!-- Status visual -->
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:center;min-width:130px">
+      <div style="text-align:center">
+        <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;
+          {% if ocorrencia.status == 'aberta' %}background:var(--green-soft)
+          {% elif ocorrencia.status == 'em_andamento' %}background:var(--blue-soft)
+          {% else %}background:var(--red-soft){% endif %}">
+          {% if ocorrencia.status == 'aberta' %}{{ icon('clock', 22) }}
+          {% elif ocorrencia.status == 'em_andamento' %}{{ icon('clock', 22) }}
+          {% else %}{{ icon('lock', 22) }}{% endif %}
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-2)">
+          {% if ocorrencia.status == 'aberta' %}Aberta
+          {% elif ocorrencia.status == 'em_andamento' %}Em andamento
+          {% else %}Encerrada{% endif %}
+        </div>
+      </div>
+    </div>
 
   </div>
+</div>
+
+<!-- Linha inferior: histórico + ações -->
+<div class="split">
 
   <!-- Histórico -->
-  <div class="panel">
+  <div class="panel" style="order:2">
     <div class="panel-head">
       <h2>Histórico</h2>
       <p>Linha do tempo completa da ocorrência.</p>
@@ -130,21 +111,24 @@
           <strong>
             {% if log.acao == 'criada' %}Criada
             {% elif log.acao == 'encaminhada' %}Encaminhada
-            {% elif log.acao == 'atualizada' %}Atualizada
+            {% elif log.acao == 'atualizada' %}
+              {% if 'Andamento registrado' in (log.descricao_acao or '') %}Andamento
+              {% else %}Atualizada{% endif %}
             {% elif log.acao == 'encerrada' %}Encerrada
             {% else %}{{ log.acao|capitalize }}{% endif %}
             <span style="font-weight:400;color:var(--text-3);font-size:12px"> · {{ log.usuario.nome }}</span>
           </strong>
           {% if log.descricao_acao %}
-          <p style="margin-top:3px;white-space:pre-line">{{
+          <p style="margin-top:3px;white-space:pre-line;font-size:12.5px">{{
             log.descricao_acao
+            | replace('Andamento registrado por ' ~ log.usuario.nome ~ ': ', '')
             | replace('. Motivo: ', '\nMotivo: ')
             | replace('. Alterações: ', '\nAlterações: ')
             | replace('. Resolução: ', '\nResolução: ')
             | replace(' | ', '\n→ ')
           }}</p>
           {% endif %}
-          <p style="font-size:11.5px;margin-top:5px;color:var(--text-3)">
+          <p style="font-size:11px;margin-top:4px;color:var(--text-3)">
             {{ log.data_hora.strftime('%d/%m/%Y às %H:%M') }}
           </p>
         </div>
@@ -154,6 +138,137 @@
       {% endfor %}
     </div>
   </div>
+
+  <!-- Ações em abas -->
+  {% if ocorrencia.status != 'encerrada' and e_responsavel %}
+  <div class="panel" style="order:1">
+
+    <div style="display:flex;border-bottom:1px solid var(--border)">
+      <button type="button" class="aba-btn active" onclick="trocarAba('andamento', this)"
+              style="display:flex;align-items:center;gap:6px;padding:13px 16px;font-size:13px;font-weight:500;
+                     border:none;border-bottom:2px solid var(--green);background:none;cursor:pointer;
+                     color:var(--green-text);font-family:inherit">
+        {{ icon('pencil', 13) }} Andamento
+      </button>
+      {% if opcoes %}
+      <button type="button" class="aba-btn" onclick="trocarAba('encaminhar', this)"
+              style="display:flex;align-items:center;gap:6px;padding:13px 16px;font-size:13px;font-weight:500;
+                     border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;
+                     color:var(--text-3);font-family:inherit">
+        {{ icon('send', 13) }} Encaminhar
+      </button>
+      {% endif %}
+      <button type="button" class="aba-btn" onclick="trocarAba('encerrar', this)"
+              style="display:flex;align-items:center;gap:6px;padding:13px 16px;font-size:13px;font-weight:500;
+                     border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;
+                     color:var(--text-3);font-family:inherit">
+        {{ icon('lock', 13) }} Encerrar
+      </button>
+    </div>
+
+    <!-- Andamento -->
+    <div id="aba-andamento" class="aba-conteudo">
+      <form method="POST" action="{{ url_for('main.atualizar_ocorrencia', id=ocorrencia.id) }}">
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+
+          <!-- Status atual + opção de alterar -->
+          <div style="display:flex;align-items:center;justify-content:space-between;
+                      padding:10px 14px;background:var(--surface-2);border-radius:var(--radius-sm);
+                      border:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:600;color:var(--text-3)">STATUS ATUAL</span>
+              {% if ocorrencia.status == 'aberta' %}
+                <span class="pill pill-open">Aberta</span>
+              {% else %}
+                <span class="pill pill-andamento">Em andamento</span>
+              {% endif %}
+            </div>
+            {% if ocorrencia.status == 'aberta' %}
+            
+            {% else %}
+            {# Em andamento — hidden para manter o status #}
+            
+            <span style="font-size:12px;color:var(--text-3)">Encerre para finalizar</span>
+            {% endif %}
+          </div>
+
+          <label class="lbl">O que foi feito?
+            <textarea class="field" name="andamento" rows="4" required style="margin-top:5px"
+              placeholder="Descreva o que foi feito, apurado ou os próximos passos…"></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-sm">{{ icon('check', 13) }} Registrar</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Encaminhar -->
+    {% if opcoes %}
+    <div id="aba-encaminhar" class="aba-conteudo" style="display:none">
+      <form method="POST" action="{{ url_for('main.encaminhar_ocorrencia', id=ocorrencia.id) }}">
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+          <label class="lbl">Encaminhar para
+            <select class="sel" name="responsavel_id" required style="margin-top:5px">
+              <option value="">Selecione…</option>
+              {% for u in opcoes %}
+              <option value="{{ u.id }}">
+                {{ u.nome }} —
+                {% if u.perfil == 'coordenacao' %}Coordenação
+                {% elif u.perfil == 'pedagogia' %}Pedagogo
+                {% else %}Atendente{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="lbl">Motivo
+            <textarea class="field" name="motivo" rows="3" style="margin-top:5px"
+              placeholder="Por que está encaminhando?"></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-secondary btn-sm">{{ icon('send', 13) }} Encaminhar</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Encerrar -->
+    <div id="aba-encerrar" class="aba-conteudo" style="display:none">
+      <form method="POST" action="{{ url_for('main.encerrar_ocorrencia', id=ocorrencia.id) }}"
+            onsubmit="return confirm('Confirmar encerramento? Esta ação não pode ser desfeita.')">
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+          <div class="notice">Esta ação é permanente e não pode ser desfeita.</div>
+          <label class="lbl">Como foi resolvida?
+            <textarea class="field" name="resolucao" rows="4" required style="margin-top:5px"
+              placeholder="Descreva como a situação foi resolvida…"></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-danger btn-sm">{{ icon('lock', 13) }} Confirmar encerramento</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+  {% else %}
+  <!-- Visualizando: só histórico ocupa a largura -->
+  <div style="order:1"></div>
+  {% endif %}
+
 </div>
+
+<script>
+function trocarAba(id, btn) {
+  document.querySelectorAll('.aba-conteudo').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.aba-btn').forEach(b => {
+    b.style.borderBottomColor = 'transparent';
+    b.style.color = 'var(--text-3)';
+  });
+  document.getElementById('aba-' + id).style.display = 'block';
+  btn.style.borderBottomColor = id === 'encerrar' ? 'var(--red)' : 'var(--green)';
+  btn.style.color = id === 'encerrar' ? 'var(--red-text)' : 'var(--green-text)';
+}
+</script>
 
 {% endblock %}

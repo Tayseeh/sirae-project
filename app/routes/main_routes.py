@@ -36,7 +36,13 @@ def dashboard():
     query = Ocorrencia.query
 
     if filtro_nome:
-        query = query.join(Aluno).filter(Aluno.nome.ilike(f'%{filtro_nome}%'))
+        from sqlalchemy import or_
+        query = query.join(Aluno).filter(
+            or_(
+                Aluno.nome.ilike(f'%{filtro_nome}%'),
+                Aluno.matricula.ilike(f'%{filtro_nome}%')
+            )
+        )
     if filtro_tipo:
         query = query.filter(Ocorrencia.tipo == filtro_tipo)
     if filtro_status:
@@ -54,22 +60,23 @@ def dashboard():
     # Contadores
     total      = Ocorrencia.query.count()
     abertas    = Ocorrencia.query.filter_by(status='aberta').count()
-    acomp      = Ocorrencia.query.filter_by(status='em_acompanhamento').count()
+    acomp      = Ocorrencia.query.filter_by(status='em_andamento').count()
     encerradas = Ocorrencia.query.filter_by(status='encerrada').count()
     minhas     = Ocorrencia.query.filter_by(responsavel_id=current_user.id,
                                             status='aberta').count() + \
                  Ocorrencia.query.filter_by(responsavel_id=current_user.id,
-                                            status='em_acompanhamento').count()
+                                            status='em_andamento').count()
 
     # Lista de atendentes/coordenadores para filtro
     atendentes = Usuario.query.filter(
-        Usuario.perfil.in_(['atendente', 'coordenacao'])
+        Usuario.perfil.in_(['atendente', 'coordenacao', 'pedagogia']),
+        Usuario.ativo == True
     ).order_by(Usuario.nome).all()
 
     # Ocorrências novas encaminhadas para mim (para o alerta)
     novas_para_mim = Ocorrencia.query.filter(
         Ocorrencia.responsavel_id == current_user.id,
-        Ocorrencia.status == 'em_acompanhamento'
+        Ocorrencia.status == 'em_andamento'
     ).count()
 
     return render_template('dashboard.html',
@@ -145,7 +152,7 @@ def ver_ocorrencia(id):
     opcoes = []
     if e_responsavel and ocorrencia.status != 'encerrada':
         opcoes = Usuario.query.filter(
-            Usuario.perfil.in_(['atendente', 'coordenacao']),
+            Usuario.perfil.in_(['atendente', 'coordenacao', 'pedagogia']),
             Usuario.id != ocorrencia.responsavel_id,
             Usuario.ativo == True
         ).order_by(Usuario.perfil.desc(), Usuario.nome).all()
@@ -181,7 +188,7 @@ def encaminhar_ocorrencia(id):
 
     anterior = ocorrencia.responsavel.nome
     ocorrencia.responsavel_id = novo_resp.id
-    ocorrencia.status = 'em_acompanhamento'
+    ocorrencia.status = 'em_andamento'
 
     desc = f'Encaminhada de {anterior} para {novo_resp.nome} ({novo_resp.perfil})'
     if motivo:
@@ -191,6 +198,41 @@ def encaminhar_ocorrencia(id):
     db.session.commit()
 
     flash(f'Ocorrência encaminhada para {novo_resp.nome}!', 'success')
+    return redirect(url_for('main.ver_ocorrencia', id=id))
+
+
+
+@main_bp.route('/ocorrencia/<int:id>/atualizar', methods=['POST'])
+@login_required
+@nao_admin
+def atualizar_ocorrencia(id):
+    """Registra andamento sem sobrescrever a descrição original"""
+    ocorrencia = Ocorrencia.query.get_or_404(id)
+
+    if ocorrencia.responsavel_id != current_user.id:
+        flash('Apenas o responsável atual pode atualizar esta ocorrência.', 'danger')
+        return redirect(url_for('main.ver_ocorrencia', id=id))
+
+    if ocorrencia.status == 'encerrada':
+        flash('Não é possível atualizar uma ocorrência encerrada.', 'warning')
+        return redirect(url_for('main.ver_ocorrencia', id=id))
+
+    andamento = request.form.get('andamento', '').strip()
+
+    if not andamento:
+        flash('Descreva o andamento antes de salvar.', 'danger')
+        return redirect(url_for('main.ver_ocorrencia', id=id))
+
+    # Ao registrar andamento, muda automaticamente para Em andamento
+    status_anterior = ocorrencia.status
+    ocorrencia.status = 'em_andamento'
+
+    desc_log = f'Andamento registrado por {current_user.nome}: {andamento}'
+
+    _log(id, 'atualizada', desc_log)
+    db.session.commit()
+
+    flash('Andamento registrado com sucesso!', 'success')
     return redirect(url_for('main.ver_ocorrencia', id=id))
 
 
@@ -219,14 +261,39 @@ def editar_ocorrencia(id):
 
         ocorrencia.tipo      = novo_tipo
         ocorrencia.descricao = nova_desc
-        if novo_status in ['aberta', 'em_acompanhamento']:
+        if novo_status in ['aberta', 'em_andamento']:
             ocorrencia.status = novo_status
 
-        labels = {'aberta': 'Aberta', 'em_acompanhamento': 'Em acompanhamento'}
         mudancas = []
+
+        # Remove anexo se solicitado
+        remover = request.form.get('remover_anexo', '0')
+        if remover == '1' and ocorrencia.anexo_arquivo:
+            try:
+                caminho = os.path.join(current_app.root_path, 'static', 'uploads', ocorrencia.anexo_arquivo)
+                if os.path.exists(caminho):
+                    os.remove(caminho)
+            except Exception:
+                pass
+            ocorrencia.anexo_arquivo = None
+            mudancas.append('Anexo removido')
+
+        # Novo anexo enviado
+        arquivo = request.files.get('anexo')
+        if arquivo and arquivo.filename:
+            ext = arquivo.filename.rsplit('.', 1)[-1].lower()
+            if ext in {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}:
+                pasta = os.path.join(current_app.root_path, 'static', 'uploads')
+                os.makedirs(pasta, exist_ok=True)
+                nome_arquivo = f"{current_user.id}_{int(time.time())}_{arquivo.filename}"
+                arquivo.save(os.path.join(pasta, nome_arquivo))
+                ocorrencia.anexo_arquivo = nome_arquivo
+                mudancas.append('Anexo atualizado')
+
+        labels = {'aberta': 'Aberta', 'em_andamento': 'Em andamento'}
         if novo_tipo != tipo_anterior:
             mudancas.append(f'Tipo: "{tipo_anterior}" → "{novo_tipo}"')
-        if novo_status and novo_status != status_anterior and novo_status in ['aberta', 'em_acompanhamento']:
+        if novo_status and novo_status != status_anterior and novo_status in ['aberta', 'em_andamento']:
             mudancas.append(f'Status: "{labels.get(status_anterior)}" → "{labels.get(novo_status)}"')
         if nova_desc != desc_anterior:
             mudancas.append('Descrição atualizada')
@@ -240,14 +307,20 @@ def editar_ocorrencia(id):
         flash('Ocorrência atualizada!', 'success')
         return redirect(url_for('main.ver_ocorrencia', id=id))
 
-    return render_template('editar.html', ocorrencia=ocorrencia)
+    # GET: redireciona para a tela da ocorrência (edição agora é inline)
+    return redirect(url_for('main.ver_ocorrencia', id=id))
 
 
 @main_bp.route('/ocorrencia/<int:id>/encerrar', methods=['GET', 'POST'])
 @login_required
-@apenas_coordenador
+@nao_admin
 def encerrar_ocorrencia(id):
     ocorrencia = Ocorrencia.query.get_or_404(id)
+
+    # Somente o responsável atual pode encerrar
+    if ocorrencia.responsavel_id != current_user.id:
+        flash('Apenas o responsável atual pode encerrar esta ocorrência.', 'danger')
+        return redirect(url_for('main.ver_ocorrencia', id=id))
 
     if ocorrencia.status == 'encerrada':
         flash('Esta ocorrência já está encerrada.', 'warning')

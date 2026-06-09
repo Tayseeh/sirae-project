@@ -1,3 +1,4 @@
+{% from 'icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -12,90 +13,144 @@
 
   <header class="topbar">
     <a href="/" class="brand">
-      <div class="brand-logo">S</div>
-      <div>
-        <div class="brand-name">SIRAE</div>
-        <div class="brand-sub">Registro e Acompanhamento Estudantil · SENAI</div>
+      <!-- Marca SIRAE -->
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;background:var(--green);border-radius:7px;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                    color:white;font-size:18px;font-weight:700;letter-spacing:-.5px">
+          S
+        </div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span style="font-size:16px;font-weight:700;color:var(--text-1);letter-spacing:-.3px">SIRAE</span>
+            <span style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase">SENAI</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);font-weight:400;margin-top:-1px">
+            Registro e Acompanhamento Estudantil
+          </div>
+        </div>
       </div>
     </a>
     {% if current_user.is_authenticated %}
-    <div class="userbar">
-      <span class="role-badge
-        {% if current_user.perfil == 'admin' %}role-admin
-        {% elif current_user.perfil == 'coordenacao' %}role-coord
-        {% else %}role-atend{% endif %}">
-        {% if current_user.perfil == 'admin' %}Administrador
-        {% elif current_user.perfil == 'coordenacao' %}Coordenação
-        {% else %}Atendente{% endif %}
-      </span>
-      <span class="topbar-nome">{{ current_user.nome }}</span>
-      <div class="avatar">{{ current_user.nome[0]|upper }}</div>
-    </div>
+    <a href="{{ url_for('auth.perfil') }}" class="userbar" style="text-decoration:none;cursor:pointer" title="Meu perfil">
+      <div class="avatar" style="overflow:hidden">
+        {% if current_user.foto %}
+          <img src="{{ url_for('static', filename=current_user.foto) }}"
+               style="width:100%;height:100%;object-fit:cover">
+        {% else %}
+          {{ current_user.nome[0]|upper }}
+        {% endif %}
+      </div>
+      <div style="line-height:1.25">
+        <div style="font-size:13.5px;font-weight:500;color:var(--text-1)">{{ current_user.nome }}</div>
+        <div style="font-size:11.5px;color:var(--text-3)">
+          {% if current_user.perfil == 'admin' %}Administrador
+          {% elif current_user.perfil == 'coordenacao' %}Coordenação
+          {% elif current_user.perfil == 'pedagogia' %}Pedagogo
+          {% else %}Atendente{% endif %}
+        </div>
+      </div>
+    </a>
     {% endif %}
   </header>
 
   <aside class="sidebar">
+
     {% if current_user.perfil == 'admin' %}
-      <div class="nav-section">
-        <div class="nav-label">Administração</div>
-        <a href="{{ url_for('admin.usuarios') }}" class="nav-item {% if 'admin.usuario' in request.endpoint %}active{% endif %}">
-          <span class="nav-icon">👥</span> Usuários
-        </a>
-        <a href="{{ url_for('admin.logs') }}" class="nav-item {% if request.endpoint == 'admin.logs' %}active{% endif %}">
-          <span class="nav-icon">🗒️</span> Logs de auditoria
-        </a>
-      </div>
+    <div class="nav-section">
+      <div class="nav-label">Administração</div>
+      <a href="{{ url_for('admin.usuarios') }}"
+         class="nav-item {% if 'admin.usuario' in request.endpoint %}active{% endif %}">
+        {{ icon('users', 16) }} Usuários
+      </a>
+      <a href="{{ url_for('admin.logs') }}"
+         class="nav-item {% if request.endpoint == 'admin.logs' %}active{% endif %}">
+        {{ icon('scroll-text', 16) }} Logs de auditoria
+      </a>
+    </div>
 
     {% elif current_user.perfil == 'atendente' %}
-      <div class="nav-section">
-        <div class="nav-label">Ocorrências</div>
-        <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
-          <span class="nav-icon">📋</span> Painel
-        </a>
-        <a href="{{ url_for('main.nova_ocorrencia') }}" class="nav-item {% if request.endpoint == 'main.nova_ocorrencia' %}active{% endif %}">
-          <span class="nav-icon">➕</span> Nova ocorrência
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Alunos</div>
-        <a href="{{ url_for('alunos.listar') }}" class="nav-item {% if 'alunos' in request.endpoint and request.endpoint != 'alunos.novo' %}active{% endif %}">
-          <span class="nav-icon">🎓</span> Listar alunos
-        </a>
-        <a href="{{ url_for('alunos.novo') }}" class="nav-item {% if request.endpoint == 'alunos.novo' %}active{% endif %}">
-          <span class="nav-icon">➕</span> Novo aluno
-        </a>
-      </div>
+    <div class="nav-section">
+      <div class="nav-label">Ocorrências</div>
+      <a href="{{ url_for('main.dashboard') }}"
+         class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+        {{ icon('layout-dashboard', 16) }} Painel
+      </a>
+      <a href="{{ url_for('main.nova_ocorrencia') }}"
+         class="nav-item {% if request.endpoint == 'main.nova_ocorrencia' %}active{% endif %}">
+        {{ icon('plus-circle', 16) }} Nova ocorrência
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Alunos</div>
+      <a href="{{ url_for('alunos.listar') }}"
+         class="nav-item {% if 'alunos' in request.endpoint and request.endpoint != 'alunos.novo' %}active{% endif %}">
+        {{ icon('graduation-cap', 16) }} Listar alunos
+      </a>
+      <a href="{{ url_for('alunos.novo') }}"
+         class="nav-item {% if request.endpoint == 'alunos.novo' %}active{% endif %}">
+        {{ icon('plus-circle', 16) }} Novo aluno
+      </a>
+    </div>
 
     {% elif current_user.perfil == 'coordenacao' %}
-      <div class="nav-section">
-        <div class="nav-label">Ocorrências</div>
-        <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
-          <span class="nav-icon">📋</span> Painel
-        </a>
-        <a href="{{ url_for('main.nova_ocorrencia') }}" class="nav-item {% if request.endpoint == 'main.nova_ocorrencia' %}active{% endif %}">
-          <span class="nav-icon">➕</span> Nova ocorrência
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Alunos</div>
-        <a href="{{ url_for('alunos.listar') }}" class="nav-item {% if 'alunos' in request.endpoint and request.endpoint != 'alunos.novo' %}active{% endif %}">
-          <span class="nav-icon">🎓</span> Listar alunos
-        </a>
-        <a href="{{ url_for('alunos.novo') }}" class="nav-item {% if request.endpoint == 'alunos.novo' %}active{% endif %}">
-          <span class="nav-icon">➕</span> Novo aluno
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Gestão</div>
-        <a href="{{ url_for('main.relatorios') }}" class="nav-item {% if 'relatorio' in request.endpoint %}active{% endif %}">
-          <span class="nav-icon">📊</span> Relatórios
-        </a>
-      </div>
+    <div class="nav-section">
+      <div class="nav-label">Ocorrências</div>
+      <a href="{{ url_for('main.dashboard') }}"
+         class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+        {{ icon('layout-dashboard', 16) }} Painel
+      </a>
+      <a href="{{ url_for('main.nova_ocorrencia') }}"
+         class="nav-item {% if request.endpoint == 'main.nova_ocorrencia' %}active{% endif %}">
+        {{ icon('plus-circle', 16) }} Nova ocorrência
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Alunos</div>
+      <a href="{{ url_for('alunos.listar') }}"
+         class="nav-item {% if 'alunos' in request.endpoint and request.endpoint != 'alunos.novo' %}active{% endif %}">
+        {{ icon('graduation-cap', 16) }} Listar alunos
+      </a>
+      <a href="{{ url_for('alunos.novo') }}"
+         class="nav-item {% if request.endpoint == 'alunos.novo' %}active{% endif %}">
+        {{ icon('plus-circle', 16) }} Novo aluno
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Gestão</div>
+      <a href="{{ url_for('main.relatorios') }}"
+         class="nav-item {% if 'relatorio' in request.endpoint %}active{% endif %}">
+        {{ icon('bar-chart-2', 16) }} Relatórios
+      </a>
+    </div>
+
+    {% elif current_user.perfil == 'pedagogia' %}
+    <div class="nav-section">
+      <div class="nav-label">Ocorrências</div>
+      <a href="{{ url_for('main.dashboard') }}"
+         class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+        {{ icon('layout-dashboard', 16) }} Painel
+      </a>
+      <a href="{{ url_for('main.nova_ocorrencia') }}"
+         class="nav-item {% if request.endpoint == 'main.nova_ocorrencia' %}active{% endif %}">
+        {{ icon('plus-circle', 16) }} Nova ocorrência
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Alunos</div>
+      <a href="{{ url_for('alunos.listar') }}"
+         class="nav-item {% if 'alunos' in request.endpoint and request.endpoint != 'alunos.novo' %}active{% endif %}">
+        {{ icon('graduation-cap', 16) }} Listar alunos
+      </a>
+    </div>
     {% endif %}
 
     <div class="nav-logout">
+      <a href="{{ url_for('auth.perfil') }}" class="nav-item {% if request.endpoint == 'auth.perfil' %}active{% endif %}">
+        {{ icon('user', 16) }} Meu perfil
+      </a>
       <a href="{{ url_for('auth.logout') }}" class="nav-item">
-        <span class="nav-icon">🚪</span> Sair
+        {{ icon('log-out', 16) }} Sair
       </a>
     </div>
   </aside>

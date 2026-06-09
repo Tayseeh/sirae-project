@@ -1,13 +1,34 @@
+{% from 'icons.html' import icon %}
 {% extends "base.html" %}
-{% block title %}Usuários{% endblock %}
+{% block title %}Usuários<script>
+function filtrarUsuarios(q) {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('tbody tr[data-busca]').forEach(tr => {
+    tr.style.display = !q || tr.dataset.busca.includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
 {% block content %}
 
 <div class="page-head">
   <div>
     <h1>Gerenciamento de usuários</h1>
-    <p class="subtitle">Crie e gerencie contas de atendentes e coordenadores.</p>
+    <p class="subtitle">Crie e gerencie contas de acesso ao sistema.</p>
   </div>
-  <a href="{{ url_for('admin.novo_usuario') }}" class="btn btn-primary">+ Novo Usuário</a>
+  <a href="{{ url_for('admin.novo_usuario') }}" class="btn btn-primary">{{ icon('plus', 13) }} Novo usuário</a>
+</div>
+
+<div style="margin-bottom:12px">
+  <div class="search-wrap" style="position:relative;max-width:380px">
+    <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
+                 color:var(--text-3);display:flex;align-items:center;pointer-events:none">
+      {{ icon('search', 15) }}
+    </span>
+    <input class="field" type="text" id="busca-usuario"
+           placeholder="Buscar por nome ou e-mail…"
+           style="padding-left:34px" oninput="filtrarUsuarios(this.value)">
+  </div>
 </div>
 
 <div class="table-wrap">
@@ -23,40 +44,69 @@
     </thead>
     <tbody>
       {% for u in usuarios %}
-      <tr>
+      <tr data-busca="{{ (u.nome ~ u.email)|lower }}">
         <td>
-          <div class="avatar" style="display:inline-flex;margin-right:10px;vertical-align:middle">{{ u.nome[0]|upper }}</div>
-          <strong>{{ u.nome }}</strong>
-          {% if u.perfil == 'admin' %}<span style="font-size:11px;color:var(--muted)"> (você)</span>{% endif %}
+          <!-- Avatar centralizado com flexbox -->
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;
+                        background:var(--green-soft);color:var(--green-text);
+                        border:1.5px solid var(--green-border);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:13px;font-weight:600;flex-shrink:0">
+              {{ u.nome[0]|upper }}
+            </div>
+            <div>
+              <div style="font-weight:500;font-size:14px;color:var(--text-1)">
+                {{ u.nome }}
+                {% if u.id == current_user.id %}
+                  <span style="font-size:11px;color:var(--text-3);font-weight:400"> (você)</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
         </td>
-        <td style="color:var(--muted)">{{ u.email }}</td>
+        <td style="color:var(--text-3);font-size:13.5px">{{ u.email }}</td>
         <td>
-          {% if u.perfil == 'coordenacao' %}
-            <span class="pill" style="background:var(--blue-soft);color:var(--blue)">Coordenação</span>
+          {% if u.perfil == 'admin' %}
+            <span class="pill" style="background:#f1f0fe;color:#4338ca;border-color:#c9bef5">Administrador</span>
+          {% elif u.perfil == 'coordenacao' %}
+            <span class="pill" style="background:var(--blue-soft);color:var(--blue-text);border-color:var(--blue-border)">Coordenação</span>
+          {% elif u.perfil == 'pedagogia' %}
+            <span class="pill" style="background:var(--purple-soft);color:var(--purple-text);border-color:var(--purple-border)">Pedagogo</span>
           {% elif u.perfil == 'atendente' %}
-            <span class="pill" style="background:var(--teal-soft);color:var(--teal)">Atendente</span>
-          {% else %}
-            <span class="pill" style="background:#f1f5f9;color:#475569">Admin</span>
+            <span class="pill" style="background:var(--green-soft);color:var(--green-text);border-color:var(--green-border)">Atendente</span>
           {% endif %}
         </td>
         <td>
           {% if u.ativo %}
-            <span class="pill pill-done">Ativo</span>
+            <span class="pill pill-open">Ativo</span>
           {% else %}
             <span class="pill pill-closed">Inativo</span>
           {% endif %}
         </td>
         <td>
-          {% if u.perfil != 'admin' %}
+          {% if u.id != current_user.id %}
           <div class="actions">
-            <a href="{{ url_for('admin.editar_usuario', id=u.id) }}" class="btn btn-ghost btn-sm">✏️ Editar</a>
+            <a href="{{ url_for('admin.editar_usuario', id=u.id) }}" class="btn btn-ghost btn-sm">{{ icon('pencil', 13) }} Editar</a>
             {% if u.ativo %}
-            <a href="{{ url_for('admin.desativar_usuario', id=u.id) }}"
-               class="btn btn-sm" style="background:var(--red-soft);color:var(--red)"
-               onclick="return confirm('Desativar {{ u.nome }}?')">Desativar</a>
+              <a href="{{ url_for('admin.desativar_usuario', id=u.id) }}"
+                 class="btn btn-warn btn-sm"
+                 onclick="return confirm('Desativar {{ u.nome }}?')">{{ icon('user-x', 13) }} Desativar</a>
+              <a href="{{ url_for('admin.excluir_usuario', id=u.id) }}"
+                 class="btn btn-danger btn-sm"
+                 onclick="return confirm('Excluir permanentemente {{ u.nome }}? Esta ação não pode ser desfeita.')">{{ icon('trash-2', 13) }} Excluir</a>
+            {% else %}
+              <a href="{{ url_for('admin.reativar_usuario', id=u.id) }}"
+                 class="btn btn-sm" style="background:var(--green-soft);color:var(--green-text);border-color:var(--green-border)"
+                 onclick="return confirm('Reativar {{ u.nome }}?')">{{ icon('user-check', 13) }} Reativar</a>
+              <a href="{{ url_for('admin.excluir_usuario', id=u.id) }}"
+                 class="btn btn-danger btn-sm"
+                 onclick="return confirm('Excluir permanentemente {{ u.nome }}? Esta ação não pode ser desfeita.')">{{ icon('trash-2', 13) }} Excluir</a>
             {% endif %}
           </div>
-          {% else %}—{% endif %}
+          {% else %}
+          <span style="color:var(--text-3);font-size:13px">—</span>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -64,4 +114,12 @@
   </table>
 </div>
 
+<script>
+function filtrarUsuarios(q) {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('tbody tr[data-busca]').forEach(tr => {
+    tr.style.display = !q || tr.dataset.busca.includes(q) ? '' : 'none';
+  });
+}
+</script>
 {% endblock %}

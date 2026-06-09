@@ -42,8 +42,9 @@ class Aluno(db.Model):
 
     # Dados acadêmicos
     matricula = db.Column(db.String(20), unique=True, nullable=True)
-    nivel = db.Column(db.String(30), nullable=True)              # fundamental, medio
-    serie = db.Column(db.String(30), nullable=True)              # 6º ano, 1º ano EM...
+    curso     = db.Column(db.String(100), nullable=True)
+    nivel = db.Column(db.String(30), nullable=True)              # tecnico, graduacao, pos
+    serie = db.Column(db.String(30), nullable=True)              # 1º semestre, 2º semestre...
     turma = db.Column(db.String(10), nullable=True)              # A, B, C...
     turno = db.Column(db.String(10), nullable=True)              # manhã, tarde, noite
 

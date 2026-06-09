@@ -1,0 +1,163 @@
+{% from 'icons.html' import icon %}
+{% extends "base.html" %}
+{% block title %}Meu perfil{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Meu perfil</h1>
+    <p class="subtitle">Gerencie suas informações pessoais, foto e senha de acesso.</p>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start;max-width:860px">
+
+  <!-- Coluna esquerda: foto + info readonly -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- Foto -->
+    <div class="panel">
+      <div class="panel-head"><h2>Foto de perfil</h2></div>
+      <div style="padding:20px;text-align:center">
+        <div id="foto-preview" style="width:120px;height:120px;border-radius:50%;
+             background:var(--green-soft);border:2px solid var(--green-border);
+             display:flex;align-items:center;justify-content:center;
+             margin:0 auto 14px;overflow:hidden;cursor:pointer;font-size:40px;
+             font-weight:600;color:var(--green-text)"
+             onclick="document.getElementById('foto-input').click()">
+          {% if current_user.foto %}
+            <img src="{{ url_for('static', filename=current_user.foto) }}"
+                 style="width:100%;height:100%;object-fit:cover" id="foto-img">
+          {% else %}
+            {{ current_user.nome[0]|upper }}
+          {% endif %}
+        </div>
+        <p style="font-size:12px;color:var(--text-3);margin-bottom:10px">JPG, PNG ou WEBP · Máx. 5MB</p>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+          {{ icon('upload', 13) }} Alterar foto
+          <input type="file" id="foto-input" accept=".jpg,.jpeg,.png,.webp"
+                 style="display:none" onchange="previewFoto(this)">
+        </label>
+      </div>
+    </div>
+
+    <!-- Info readonly -->
+    <div class="panel">
+      <div class="panel-head"><h2>Acesso</h2></div>
+      <div style="padding:4px 0">
+        {% macro row(label, val) %}
+        <div style="padding:10px 16px;border-bottom:1px solid var(--bg)">
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">{{ label }}</div>
+          <div style="font-size:13.5px;color:var(--text-2)">{{ val or '—' }}</div>
+        </div>
+        {% endmacro %}
+        {{ row('E-mail', current_user.email) }}
+        {{ row('Perfil', 'Administrador' if current_user.perfil == 'admin' else 'Coordenação' if current_user.perfil == 'coordenacao' else 'Pedagogo' if current_user.perfil == 'pedagogia' else 'Atendente') }}
+        {{ row('Último acesso', current_user.ultimo_login.strftime('%d/%m/%Y às %H:%M') if current_user.ultimo_login else None) }}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Coluna direita: formulário -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Informações pessoais</h2>
+      <p>Atualize seus dados de contato e senha.</p>
+    </div>
+    <form method="POST" enctype="multipart/form-data" id="form-perfil">
+      <!-- Foto via JS — campo oculto que recebe o arquivo -->
+      <input type="file" name="foto" id="foto-form-input" style="display:none" accept=".jpg,.jpeg,.png,.webp">
+
+      <div class="form-grid">
+
+        <label class="lbl wide">Nome completo
+          <input class="field" type="text" name="nome" required maxlength="100"
+                 value="{{ current_user.nome }}" style="margin-top:5px">
+        </label>
+
+        <label class="lbl wide">Cargo / Função
+          <input class="field" type="text" name="cargo" maxlength="100"
+                 value="{{ current_user.cargo or '' }}"
+                 placeholder="Ex: Atendente do Setor de Apoio"
+                 style="margin-top:5px">
+        </label>
+
+        <label class="lbl">Telefone
+          <input class="field" type="text" name="telefone" maxlength="15"
+                 value="{{ current_user.telefone or '' }}"
+                 placeholder="(44) 99999-9999"
+                 oninput="mascaraTel(this)" style="margin-top:5px">
+          <span class="campo-hint">Com DDD</span>
+        </label>
+
+        <label class="lbl">Ramal
+          <input class="field" type="text" name="ramal" maxlength="10"
+                 value="{{ current_user.ramal or '' }}"
+                 placeholder="Ex: 2031"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                 style="margin-top:5px">
+        </label>
+
+        <!-- Divisor -->
+        <div class="wide" style="border-top:1px solid var(--border);padding-top:4px">
+          <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">
+            Alterar senha
+          </div>
+          <p style="font-size:12.5px;color:var(--text-3);margin-top:3px">Deixe em branco para manter a senha atual.</p>
+        </div>
+
+        <label class="lbl">Senha atual
+          <input class="field" type="password" name="senha_atual"
+                 placeholder="Senha atual" style="margin-top:5px">
+        </label>
+
+        <label class="lbl">Nova senha
+          <input class="field" type="password" name="nova_senha"
+                 placeholder="Mínimo 6 caracteres" minlength="6" style="margin-top:5px">
+        </label>
+
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{{ icon('check', 13) }} Salvar alterações</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+// Preview e sincroniza foto com o form
+function previewFoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (file.size > 5 * 1024 * 1024) {
+    alert('A foto deve ter no máximo 5MB.');
+    input.value = '';
+    return;
+  }
+  // Transfere o arquivo para o input dentro do form
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  document.getElementById('foto-form-input').files = dt.files;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const div = document.getElementById('foto-preview');
+    div.innerHTML = `<img src="${e.target.result}"
+      style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function mascaraTel(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length === 11)      v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  else if (v.length >= 10)  v = v.replace(/^(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  else if (v.length > 6)    v = v.replace(/^(\d{2})(\d{4,5})(\d*)/, '($1) $2-$3');
+  else if (v.length > 2)    v = v.replace(/^(\d{2})(\d+)/, '($1) $2');
+  el.value = v;
+}
+</script>
+
+{% endblock %}

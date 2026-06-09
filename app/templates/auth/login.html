@@ -3,53 +3,188 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SIRAE — Sistema de Registro e Acompanhamento Estudantil</title>
+  <title>SIRAE — Acesso</title>
   <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
   <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      background: var(--bg);
+    }
+
+    .login-shell {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      width: 100%;
+      max-width: 860px;
+      min-height: 500px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+
+    .login-left {
+      background: var(--green);
+      padding: 52px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+
+    .login-logo-mark {
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,.2);
+      border-radius: 7px;
+      display: grid; place-items: center;
+      font-size: 16px; font-weight: 700; color: white;
+    }
+
+    .login-logo-name {
+      font-size: 14px; font-weight: 600; color: white;
+    }
+
+    .login-left h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: white;
+      line-height: 1.25;
+      letter-spacing: -.5px;
+      margin-bottom: 12px;
+    }
+
+    .login-left > div > p {
+      font-size: 13.5px;
+      color: rgba(255,255,255,.65);
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .login-features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .login-feature {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: rgba(255,255,255,.75);
+    }
+
+    .login-feature-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.4);
+      flex-shrink: 0;
+    }
+
+    .login-right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 52px 44px;
+      border-left: 1px solid rgba(0,0,0,.07);
+    }
+
+    .login-right h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-1);
+      letter-spacing: -.3px;
+      margin-bottom: 4px;
+    }
+
+    .login-right > p {
+      font-size: 13px;
+      color: var(--text-3);
+      margin-bottom: 28px;
+    }
+
+    .login-right .lbl { margin-bottom: 14px; }
+
+    .login-footer-text {
+      margin-top: 24px;
+      font-size: 11.5px;
+      color: var(--text-3);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 680px) {
+      .login-shell { grid-template-columns: 1fr; }
+      .login-left { display: none; }
+      .login-right { border-left: none; padding: 40px 28px; }
+    }
+  </style>
 </head>
 <body>
-<div class="login-wrap">
-  <div class="login-card">
 
-    <div class="login-header">
+<div class="login-shell">
+
+  <div class="login-left">
+    <div>
       <div class="login-logo">
         <div class="login-logo-mark">S</div>
         <span class="login-logo-name">SIRAE · SENAI</span>
       </div>
-      <h1>Acesso ao sistema</h1>
-      <p>SIRAE — Sistema de Registro e Acompanhamento Estudantil · SENAI</p>
+      <h1>Registro e Acompanhamento Estudantil</h1>
+      <p>Plataforma integrada de gestão de ocorrências do setor de apoio estudantil.</p>
+      <div class="login-features">
+        <div class="login-feature"><div class="login-feature-dot"></div>Registro padronizado de ocorrências</div>
+        <div class="login-feature"><div class="login-feature-dot"></div>Encaminhamento entre equipes</div>
+        <div class="login-feature"><div class="login-feature-dot"></div>Histórico completo com auditoria</div>
+        <div class="login-feature"><div class="login-feature-dot"></div>Dados protegidos pela LGPD</div>
+      </div>
     </div>
-
-    <div class="login-body">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-          <div class="alert {{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endwith %}
-
-      <form method="POST" id="login-form">
-        <label class="lbl">E-mail
-          <input class="field" type="email" name="email"
-                 placeholder="seu@email.com" required autofocus>
-        </label>
-        <label class="lbl">Senha
-          <input class="field" type="password" name="password"
-                 placeholder="••••••••" required>
-        </label>
-        <div class="login-actions">
-          <button type="submit" class="btn btn-primary" id="btn-submit"
-                  onclick="this.classList.add('btn-loading');this.textContent='Entrando'">
-            Entrar
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <div class="login-footer">
-      Acesso restrito · Dados protegidos pela LGPD
-    </div>
-
   </div>
+
+  <div class="login-right">
+    <h2>Acesso ao sistema</h2>
+    <p>Entre com suas credenciais institucionais.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert {{ category }}" style="margin-bottom:16px">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" id="login-form">
+      <label class="lbl">E-mail
+        <input class="field" type="email" name="email"
+               placeholder="seu@email.com" required autofocus style="margin-top:5px">
+      </label>
+      <label class="lbl">Senha
+        <input class="field" type="password" name="password"
+               placeholder="••••••••" required style="margin-top:5px">
+      </label>
+      <button type="submit" class="btn btn-primary"
+              style="width:100%;justify-content:center;height:40px;margin-top:6px"
+              onclick="this.textContent='Entrando…';this.disabled=true;document.getElementById('login-form').submit()">
+        Entrar
+      </button>
+    </form>
+
+    <div class="login-footer-text">
+      Acesso restrito a usuários autorizados<br>
+      SENAI — Antônio Adolpho Lobbe
+    </div>
+  </div>
+
 </div>
+
 </body>
 </html>

@@ -11,6 +11,11 @@ class Usuario(UserMixin, db.Model):
     password_hash = db.Column(db.String(200), nullable=False)
     nome = db.Column(db.String(100), nullable=False)
     perfil = db.Column(db.String(20), default='atendente')  # admin | atendente | coordenacao
+    foto     = db.Column(db.String(200), nullable=True)
+    telefone = db.Column(db.String(20), nullable=True)
+    ramal    = db.Column(db.String(10), nullable=True)
+    cargo    = db.Column(db.String(100), nullable=True)
+    ultimo_login = db.Column(db.DateTime, nullable=True)
     ativo = db.Column(db.Boolean, default=True)
 
     def set_password(self, password):
