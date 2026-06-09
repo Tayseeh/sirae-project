@@ -49,6 +49,7 @@ class Aluno(db.Model):
     turno = db.Column(db.String(10), nullable=True)              # manhã, tarde, noite
 
     # Responsável (obrigatório para menores)
+    tipo_contato            = db.Column(db.String(20), nullable=True, default='emergencia')
     responsavel_nome = db.Column(db.String(100), nullable=True)
     responsavel_parentesco = db.Column(db.String(30), nullable=True)
     responsavel_cpf = db.Column(db.String(14), nullable=True)

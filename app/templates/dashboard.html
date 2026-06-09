@@ -3,12 +3,11 @@
 {% block title %}Painel{% endblock %}
 {% block content %}
 
-{% if novas_para_mim > 0 %}
+{% if ocorrencias_comigo > 0 %}
 <div class="alert info" style="display:flex;align-items:center;gap:10px">
- <span></span>
  {{ icon('bell', 15) }}
-  <span style="flex:1">Você tem <strong>{{ novas_para_mim }} ocorrência{{ 's' if novas_para_mim > 1 }}</strong> em andamentoanhamento sob sua responsabilidade.</span>
- <a href="?status=em_andamento&responsavel={{ current_user.id }}" class="btn btn-sm" style="background:var(--blue);color:white;border-color:var(--blue)">Ver →</a>
+ <span style="flex:1">Você tem <strong>{{ ocorrencias_comigo }} ocorrência{{ 's' if ocorrencias_comigo > 1 }}</strong> sob sua responsabilidade.</span>
+ <a href="?responsavel={{ current_user.id }}" class="btn btn-sm" style="background:var(--blue);color:white;border-color:var(--blue)">Ver →</a>
 </div>
 {% endif %}
 
@@ -94,7 +93,7 @@
  </thead>
  <tbody>
  {% for o in ocorrencias %}
- <tr class="{% if o.responsavel_id == current_user.id and o.status != 'encerrada' %}row-mine{% endif %}">
+ <tr {% if o.responsavel_id == current_user.id and o.status != 'encerrada' %}style="background:var(--green-soft)"{% endif %}>
  <td><span class="id-mono">#{{ '%04d' % o.id }}</span></td>
  <td class="student-cell">
  <a href="{{ url_for('alunos.perfil', id=o.aluno_id) }}"
@@ -102,7 +101,7 @@
  <strong style="border-bottom:1px dashed var(--border-2)">{{ o.aluno.nome }}</strong>
  </a>
  <small>
- {% if o.aluno.serie %}{{ o.aluno.serie }}{% endif %}
+ {{ o.aluno.curso or o.aluno.serie or '—' }}
  {% if o.aluno.turma %} · Turma {{ o.aluno.turma }}{% endif %}
  </small>
  </td>

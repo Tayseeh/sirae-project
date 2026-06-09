@@ -53,7 +53,7 @@
       <label class="lbl">Senha {% if not usuario %}*{% endif %}
         <input class="field" type="password" name="senha" style="margin-top:5px"
                {% if not usuario %}required{% endif %} minlength="6"
-               placeholder="{% if usuario %}Deixe em branco para manter{% else %}Mínimo 6 caracteres{% endif %}">
+               placeholder="{{ 'Nova senha (opcional)' if usuario else 'Mínimo 6 caracteres' }}">
       </label>
 
     </div>

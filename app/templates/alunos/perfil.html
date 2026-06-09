@@ -75,15 +75,15 @@
  {% endmacro %}
  {{ row('Matrícula', aluno.matricula) }}
  {{ row('Nível', 'Técnico' if aluno.nivel == 'tecnico' else ('Graduação' if aluno.nivel == 'graduacao' else ('Pós-graduação' if aluno.nivel == 'pos' else (aluno.nivel or '—')))) }}
- {{ row('Curso', aluno.curso)
-        {{ row('Semestre', aluno.serie) }} }}
+ {{ row('Curso', aluno.curso) }}
+ {{ row('Semestre', aluno.serie) }}
  {{ row('Turma', ('Turma ' + aluno.turma) if aluno.turma else None) }}
  {{ row('Turno', aluno.turno) }}
  </div>
  </div>
 
  <div class="panel">
- <div class="panel-head"><h2>Responsável / Contato de emergência</h2></div>
+ <div class="panel-head"><h2>{% if aluno.tipo_contato == "responsavel" %}Responsável legal{% else %}Contato de emergência{% endif %}</h2></div>
  <div style="padding:4px 0">
  {% macro row(label, val) %}
  <div style="display:flex;justify-content:space-between;align-items:center;

@@ -179,21 +179,29 @@
  </div>
  </div>
 
- <!-- Responsável -->
+ <!-- Responsável / Contato de emergência -->
  <div class="panel">
  <div class="panel-head">
- <h2>Responsável</h2>
- <p>Obrigatório para alunos menores de 18 anos.</p>
+   <h2 id="titulo-contato">Contato de emergência</h2>
+   <p>Obrigatório para menores de 18 anos. Opcional para demais.</p>
+ </div>
+ <div style="padding:0 20px 4px">
+   <label class="lbl">Tipo de vínculo
+     <select class="sel" name="tipo_contato" id="tipo-contato" onchange="atualizarTipoContato()" style="margin-top:5px">
+       <option value="emergencia" {% if form.get('tipo_contato','emergencia')=='emergencia' %}selected{% endif %}>Contato de emergência</option>
+       <option value="responsavel" {% if form.get('tipo_contato')=='responsavel' %}selected{% endif %}>Responsável legal</option>
+     </select>
+   </label>
  </div>
  <div class="form-grid">
 
- <label class="lbl wide">Nome do responsável
+ <label class="lbl wide"><span id="label-nome-contato">Nome do contato</span>
  <input class="field" type="text" name="responsavel_nome" maxlength="100"
  value="{{ form.get('responsavel_nome', '') }}"
- placeholder="Nome completo">
+ placeholder="Nome completo" style="margin-top:5px">
  </label>
 
- <label class="lbl">Parentesco
+ <label class="lbl" id="wrap-parentesco">Parentesco / Vínculo
  <select class="sel" name="responsavel_parentesco">
  <option value="">Selecione...</option>
  {% for p in ['Pai','Mãe','Avô','Avó','Tio','Tia','Responsável legal','Outro'] %}
@@ -202,25 +210,18 @@
  </select>
  </label>
 
- <label class="lbl">CPF do responsável
- <input class="field" type="text" name="responsavel_cpf" id="resp_cpf"
- value="{{ form.get('responsavel_cpf', '') }}"
- placeholder="000.000.000-00"
- maxlength="14" oninput="mascaraCPF(this)">
- </label>
-
- <label class="lbl">Telefone do responsável
- <input class="field" type="text" name="responsavel_contato" id="resp_tel"
+ <label class="lbl">Telefone
+ <input class="field" type="text" name="responsavel_contato"
  value="{{ form.get('responsavel_contato', '') }}"
- placeholder="(48) 99999-9999"
- maxlength="15" oninput="mascaraTel(this)">
- <span class="campo-hint">Com DDD · 10 ou 11 dígitos</span>
+ placeholder="(16) 99999-9999"
+ maxlength="15" oninput="mascaraTel(this)" style="margin-top:5px">
+ <span class="campo-hint">Com DDD</span>
  </label>
 
- <label class="lbl wide">E-mail do responsável
+ <label class="lbl wide">E-mail
  <input class="field" type="email" name="responsavel_email" maxlength="100"
  value="{{ form.get('responsavel_email', '') }}"
- placeholder="responsavel@email.com">
+ placeholder="contato@email.com" style="margin-top:5px">
  </label>
 
  </div>
@@ -314,6 +315,32 @@ function atualizarSeries() {
 
 function atualizarTurnos() { /* todos os níveis aceitam todos os turnos */ }
 
+function atualizarTipoContato() {
+  const tipo  = document.getElementById('tipo-contato').value;
+  const titulo = document.getElementById('titulo-contato');
+  const label  = document.getElementById('label-nome-contato');
+  if (tipo === 'responsavel') {
+    titulo.textContent = 'Responsável legal';
+    label.textContent  = 'Nome do responsável';
+  } else {
+    titulo.textContent = 'Contato de emergência';
+    label.textContent  = 'Nome do contato';
+  }
+}
+
+function atualizarTipoContato() {
+  const tipo = document.getElementById('tipo-contato').value;
+  const titulo = document.getElementById('titulo-contato');
+  const labelNome = document.getElementById('label-nome-contato');
+  if (tipo === 'responsavel') {
+    titulo.textContent = 'Responsável legal';
+    if (labelNome) labelNome.textContent = 'Nome do responsável';
+  } else {
+    titulo.textContent = 'Contato de emergência';
+    if (labelNome) labelNome.textContent = 'Nome do contato';
+  }
+}
+
 document.getElementById('nivel').addEventListener('change', () => {
   atualizarCursos();
   atualizarSeries();
@@ -324,6 +351,7 @@ window.addEventListener('DOMContentLoaded', () => {
     atualizarCursos();
     atualizarSeries();
   }
+  atualizarTipoContato();
 });
 
 // ── Preview de foto ───────────────────────────────────

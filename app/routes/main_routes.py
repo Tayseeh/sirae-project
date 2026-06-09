@@ -11,13 +11,30 @@ from app import db
 main_bp = Blueprint('main', __name__)
 
 
-def _log(ocorrencia_id, acao, descricao):
+def _log(ocorrencia_id, acao, descricao, sigiloso=False, anexo_log=None):
     db.session.add(LogAuditoria(
         ocorrencia_id=ocorrencia_id,
         usuario_id=current_user.id,
         acao=acao,
-        descricao_acao=descricao
+        descricao_acao=descricao,
+        sigiloso=sigiloso,
+        anexo_log=anexo_log,
     ))
+
+
+def _salvar_anexo_log(usuario_id):
+    """Salva anexo de andamento/encaminhamento/encerramento. Retorna nome do arquivo ou None."""
+    arquivo = request.files.get('anexo_log')
+    if not arquivo or not arquivo.filename:
+        return None
+    ext = arquivo.filename.rsplit('.', 1)[-1].lower()
+    if ext not in {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}:
+        return None
+    pasta = os.path.join(current_app.root_path, 'static', 'uploads')
+    os.makedirs(pasta, exist_ok=True)
+    nome = f"{usuario_id}_{int(time.time())}_{arquivo.filename}"
+    arquivo.save(os.path.join(pasta, nome))
+    return nome
 
 
 @main_bp.route('/')
@@ -79,11 +96,13 @@ def dashboard():
         Ocorrencia.status == 'em_andamento'
     ).count()
 
+    ocorrencias_comigo = Ocorrencia.query.filter_by(responsavel_id=current_user.id).filter(Ocorrencia.status != 'encerrada').count()
     return render_template('dashboard.html',
         ocorrencias=ocorrencias,
         filtro_nome=filtro_nome, filtro_tipo=filtro_tipo,
         filtro_status=filtro_status, filtro_resp=filtro_resp,
         total=total, abertas=abertas, acomp=acomp,
+        ocorrencias_comigo=ocorrencias_comigo,
         encerradas=encerradas, minhas=minhas,
         atendentes=atendentes,
         novas_para_mim=novas_para_mim,
@@ -194,7 +213,7 @@ def encaminhar_ocorrencia(id):
     if motivo:
         desc += f'. Motivo: {motivo}'
 
-    _log(id, 'encaminhada', desc)
+    _log(id, 'encaminhada', desc, anexo_log=_salvar_anexo_log(current_user.id))
     db.session.commit()
 
     flash(f'Ocorrência encaminhada para {novo_resp.nome}!', 'success')
@@ -218,6 +237,7 @@ def atualizar_ocorrencia(id):
         return redirect(url_for('main.ver_ocorrencia', id=id))
 
     andamento = request.form.get('andamento', '').strip()
+    sigiloso  = request.form.get('sigiloso') == '1'
 
     if not andamento:
         flash('Descreva o andamento antes de salvar.', 'danger')
@@ -227,9 +247,10 @@ def atualizar_ocorrencia(id):
     status_anterior = ocorrencia.status
     ocorrencia.status = 'em_andamento'
 
-    desc_log = f'Andamento registrado por {current_user.nome}: {andamento}'
+    desc_log  = f'Andamento registrado por {current_user.nome}: {andamento}'
+    anexo_log = _salvar_anexo_log(current_user.id)
 
-    _log(id, 'atualizada', desc_log)
+    _log(id, 'atualizada', desc_log, sigiloso=sigiloso, anexo_log=anexo_log)
     db.session.commit()
 
     flash('Andamento registrado com sucesso!', 'success')
@@ -317,7 +338,6 @@ def editar_ocorrencia(id):
 def encerrar_ocorrencia(id):
     ocorrencia = Ocorrencia.query.get_or_404(id)
 
-    # Somente o responsável atual pode encerrar
     if ocorrencia.responsavel_id != current_user.id:
         flash('Apenas o responsável atual pode encerrar esta ocorrência.', 'danger')
         return redirect(url_for('main.ver_ocorrencia', id=id))
@@ -330,17 +350,21 @@ def encerrar_ocorrencia(id):
         resolucao = request.form.get('resolucao', '').strip()
         if not resolucao:
             flash('Descreva a resolução antes de encerrar.', 'danger')
-            return render_template('encerrar.html', ocorrencia=ocorrencia)
+            return redirect(url_for('main.ver_ocorrencia', id=id))
+
+        sigiloso  = request.form.get('sigiloso') == '1'
+        anexo_log = _salvar_anexo_log(current_user.id)
 
         ocorrencia.encerrar()
         _log(id, 'encerrada',
              f'Encerrada por {current_user.nome} em {ocorrencia.data_encerramento.strftime("%d/%m/%Y às %H:%M")}. '
-             f'Resolução: {resolucao}')
+             f'Resolução: {resolucao}',
+             sigiloso=sigiloso, anexo_log=anexo_log)
         db.session.commit()
         flash(f'Ocorrência #{id} encerrada!', 'success')
         return redirect(url_for('main.dashboard'))
 
-    return render_template('encerrar.html', ocorrencia=ocorrencia)
+    return redirect(url_for('main.ver_ocorrencia', id=id))
 
 
 
@@ -349,28 +373,46 @@ def encerrar_ocorrencia(id):
 @login_required
 @apenas_coordenador
 def exportar_relatorio():
-    """Gera versão imprimível/exportável do relatório"""
     from sqlalchemy import func
-    por_tipo = db.session.query(
+    from datetime import datetime
+
+    filtro_tipo = request.args.get('tipo', '').strip()
+    tipo_filter = (Ocorrencia.tipo == filtro_tipo,) if filtro_tipo else ()
+
+    ocorrencias_filtradas = Ocorrencia.query.filter(*tipo_filter)\
+        .order_by(Ocorrencia.data_criacao.desc()).all() if filtro_tipo else []
+
+    # Por tipo — sempre geral
+    por_tipo_geral = db.session.query(
         Ocorrencia.tipo, func.count(Ocorrencia.id)
-    ).group_by(Ocorrencia.tipo).all()
+    ).group_by(Ocorrencia.tipo).order_by(func.count(Ocorrencia.id).desc()).all()
+
+    # Demais — filtrados
     por_status = db.session.query(
         Ocorrencia.status, func.count(Ocorrencia.id)
-    ).group_by(Ocorrencia.status).all()
+    ).filter(*tipo_filter).group_by(Ocorrencia.status).all()
+
     por_atendente = db.session.query(
         Usuario.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia, Ocorrencia.responsavel_id == Usuario.id)     .group_by(Usuario.id, Usuario.nome).all()
+    ).join(Ocorrencia, Ocorrencia.responsavel_id == Usuario.id)\
+     .filter(*tipo_filter).group_by(Usuario.id, Usuario.nome).all()
+
     por_aluno = db.session.query(
         Aluno.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia).group_by(Aluno.id, Aluno.nome)     .order_by(func.count(Ocorrencia.id).desc()).limit(10).all()
-    total = Ocorrencia.query.count()
-    encerradas = Ocorrencia.query.filter_by(status='encerrada').count()
-    taxa = int((encerradas / total * 100)) if total else 0
-    from datetime import datetime
+    ).join(Ocorrencia).filter(*tipo_filter)\
+     .group_by(Aluno.id, Aluno.nome)\
+     .order_by(func.count(Ocorrencia.id).desc()).limit(10).all()
+
+    total      = Ocorrencia.query.filter(*tipo_filter).count()
+    encerradas = Ocorrencia.query.filter(Ocorrencia.status == 'encerrada', *tipo_filter).count()
+    taxa       = int((encerradas / total * 100)) if total else 0
+
     return render_template('relatorio_print.html',
-        por_tipo=por_tipo, por_status=por_status,
+        por_tipo_geral=por_tipo_geral, por_status=por_status,
         por_atendente=por_atendente, por_aluno=por_aluno,
         total=total, encerradas=encerradas, taxa=taxa,
+        filtro_tipo=filtro_tipo,
+        ocorrencias_filtradas=ocorrencias_filtradas,
         gerado_em=datetime.now().strftime('%d/%m/%Y às %H:%M'))
 
 
@@ -390,33 +432,41 @@ def relatorios():
     from sqlalchemy import func
     from app.models.usuario import Usuario as U
 
-    # Ocorrências por tipo
-    por_tipo = db.session.query(
-        Ocorrencia.tipo, func.count(Ocorrencia.id)
-    ).group_by(Ocorrencia.tipo).all()
+    filtro_tipo = request.args.get('tipo', '').strip()
+    tipo_filter = (Ocorrencia.tipo == filtro_tipo,) if filtro_tipo else ()
 
-    # Ocorrências por status
+    ocorrencias_filtradas = Ocorrencia.query.filter(*tipo_filter)\
+        .order_by(Ocorrencia.data_criacao.desc()).all() if filtro_tipo else []
+
+    # Gráfico de tipos — sempre geral, para mostrar todos com destaque
+    por_tipo_geral = db.session.query(
+        Ocorrencia.tipo, func.count(Ocorrencia.id)
+    ).group_by(Ocorrencia.tipo).order_by(func.count(Ocorrencia.id).desc()).all()
+
+    # Demais — filtrados
     por_status = db.session.query(
         Ocorrencia.status, func.count(Ocorrencia.id)
-    ).group_by(Ocorrencia.status).all()
+    ).filter(*tipo_filter).group_by(Ocorrencia.status).all()
 
-    # Ocorrências por atendente responsável
     por_atendente = db.session.query(
         U.nome, func.count(Ocorrencia.id)
     ).join(Ocorrencia, Ocorrencia.responsavel_id == U.id)\
-     .group_by(U.id, U.nome).all()
+     .filter(*tipo_filter).group_by(U.id, U.nome)\
+     .order_by(func.count(Ocorrencia.id).desc()).all()
 
-    # Alunos com mais ocorrências
     por_aluno = db.session.query(
         Aluno.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia).group_by(Aluno.id, Aluno.nome)\
+    ).join(Ocorrencia).filter(*tipo_filter)\
+     .group_by(Aluno.id, Aluno.nome)\
      .order_by(func.count(Ocorrencia.id).desc()).limit(10).all()
 
-    total = Ocorrencia.query.count()
-    encerradas = Ocorrencia.query.filter_by(status='encerrada').count()
-    taxa = int((encerradas / total * 100)) if total else 0
+    total      = Ocorrencia.query.filter(*tipo_filter).count()
+    encerradas = Ocorrencia.query.filter(Ocorrencia.status == 'encerrada', *tipo_filter).count()
+    taxa       = int((encerradas / total * 100)) if total else 0
 
     return render_template('relatorios.html',
-        por_tipo=por_tipo, por_status=por_status,
+        por_tipo_geral=por_tipo_geral, por_status=por_status,
         por_atendente=por_atendente, por_aluno=por_aluno,
-        total=total, encerradas=encerradas, taxa=taxa)
+        total=total, encerradas=encerradas, taxa=taxa,
+        filtro_tipo=filtro_tipo,
+        ocorrencias_filtradas=ocorrencias_filtradas)

@@ -14,7 +14,7 @@
   <div>
     <h1>Ocorrência <span style="color:var(--text-3);font-weight:400">#{{ '%04d' % ocorrencia.id }}</span></h1>
     <p class="subtitle">
-      <a href="{{ url_for('alunos.perfil', id=ocorrencia.aluno_id) }}"
+      <a href="{{ url_for('alunos.perfil', id=ocorrencia.aluno_id) }}" 
          style="color:var(--green-text);text-decoration:none;font-weight:500">{{ ocorrencia.aluno.nome }}</a>
       · {{ ocorrencia.tipo }}
       {% if ocorrencia.aluno.serie %} · {{ ocorrencia.aluno.serie }}{% endif %}
@@ -37,14 +37,6 @@
     <div style="padding:16px 20px;border-right:1px solid var(--border)">
       <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Descrição original</div>
       <p style="font-size:14px;line-height:1.6;color:var(--text-2)">{{ ocorrencia.descricao }}</p>
-      {% if ocorrencia.anexo_arquivo %}
-      <div style="margin-top:10px;display:flex;align-items:center;gap:7px">
-        {{ icon('paperclip', 14) }}
-        <span style="font-size:12.5px;color:var(--text-3)">{{ ocorrencia.anexo_arquivo.split('_', 2)[-1] }}</span>
-        <a href="{{ url_for('main.ver_anexo', filename=ocorrencia.anexo_arquivo) }}"
-           target="_blank" style="font-size:12px;color:var(--green-text);text-decoration:none">Abrir ↗</a>
-      </div>
-      {% endif %}
     </div>
 
     <!-- Criada por + Responsável -->
@@ -100,7 +92,8 @@
     </div>
     <div class="audit-list">
       {% for log in ocorrencia.logs|sort(attribute='data_hora', reverse=true) %}
-      <div class="audit-entry">
+      {% set pode_ver = not log.sigiloso or current_user.perfil in ['coordenacao', 'admin'] %}
+      <div class="audit-entry" {% if log.sigiloso %}style="background:var(--amber-soft);border-left:3px solid var(--amber-border);padding-left:8px;border-radius:4px"{% endif %}>
         <span class="audit-dot
           {% if log.acao == 'criada' %}green
           {% elif log.acao == 'encaminhada' %}blue
@@ -117,24 +110,65 @@
             {% elif log.acao == 'encerrada' %}Encerrada
             {% else %}{{ log.acao|capitalize }}{% endif %}
             <span style="font-weight:400;color:var(--text-3);font-size:12px"> · {{ log.usuario.nome }}</span>
+            {% if log.sigiloso %}<span style="font-size:10px;color:var(--amber-text);font-weight:600;margin-left:4px">{{ icon('lock', 11) }} Sigiloso</span>{% endif %}
           </strong>
+          {% if pode_ver %}
           {% if log.descricao_acao %}
-          <p style="margin-top:3px;white-space:pre-line;font-size:12.5px">{{
-            log.descricao_acao
+          {% set texto = log.descricao_acao
             | replace('Andamento registrado por ' ~ log.usuario.nome ~ ': ', '')
             | replace('. Motivo: ', '\nMotivo: ')
             | replace('. Alterações: ', '\nAlterações: ')
             | replace('. Resolução: ', '\nResolução: ')
-            | replace(' | ', '\n→ ')
-          }}</p>
+            | replace(' | ', '\n→ ') %}
+          {% if log.acao == 'atualizada' and 'Andamento registrado' in (log.descricao_acao or '') %}
+            <div style="margin-top:5px">
+              <span style="font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Trâmite</span>
+              <p style="margin-top:3px;font-size:12.5px;color:var(--text-2);white-space:pre-line">{{ texto }}</p>
+            </div>
+          {% elif log.acao == 'encaminhada' %}
+            <p style="margin-top:3px;font-size:12.5px;white-space:pre-line">{{ texto }}</p>
+          {% elif log.acao == 'encerrada' and 'Resolução:' in (log.descricao_acao or '') %}
+            <div style="margin-top:5px">
+              <span style="font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Resolução</span>
+              <p style="margin-top:3px;font-size:12.5px;color:var(--text-2);white-space:pre-line">{{ texto | replace('Encerrada por ' ~ log.usuario.nome ~ '.\nResolução: ', '') }}</p>
+            </div>
+          {% else %}
+            <p style="margin-top:3px;font-size:12.5px;white-space:pre-line">{{ texto }}</p>
+          {% endif %}
+          {% endif %}
+          {% endif %}
+          {% if log.acao == 'criada' and ocorrencia.anexo_arquivo and pode_ver %}
+          <div style="margin-top:6px">
+            <a href="{{ url_for('main.ver_anexo', filename=ocorrencia.anexo_arquivo) }}" target="_blank"
+               style="display:inline-flex;align-items:center;gap:5px;font-size:12px;
+                      color:var(--green-text);text-decoration:none;
+                      background:var(--green-soft);padding:3px 8px;border-radius:4px;
+                      border:1px solid var(--green-border)">
+              {{ icon('paperclip', 12) }} {{ ocorrencia.anexo_arquivo.split('_', 2)[-1] }}
+            </a>
+          </div>
+          {% endif %}
+          {% if log.anexo_log and pode_ver %}
+          <div style="margin-top:6px">
+            <a href="{{ url_for('main.ver_anexo', filename=log.anexo_log) }}" target="_blank"
+               style="display:inline-flex;align-items:center;gap:5px;font-size:12px;
+                      color:var(--green-text);text-decoration:none;
+                      background:var(--green-soft);padding:3px 8px;border-radius:4px;
+                      border:1px solid var(--green-border)">
+              {{ icon('paperclip', 12) }} {{ log.anexo_log.split('_', 2)[-1] }}
+            </a>
+          </div>
+          {% endif %}
+          {% if not pode_ver %}
+          <p style="margin-top:4px;font-size:12px;color:var(--amber-text);font-style:italic">
+            Conteúdo visível apenas para a coordenação.
+          </p>
           {% endif %}
           <p style="font-size:11px;margin-top:4px;color:var(--text-3)">
             {{ log.data_hora.strftime('%d/%m/%Y às %H:%M') }}
           </p>
         </div>
       </div>
-      {% else %}
-      <p style="padding:20px;color:var(--text-3);font-size:13px">Sem histórico registrado.</p>
       {% endfor %}
     </div>
   </div>
@@ -168,34 +202,38 @@
 
     <!-- Andamento -->
     <div id="aba-andamento" class="aba-conteudo">
-      <form method="POST" action="{{ url_for('main.atualizar_ocorrencia', id=ocorrencia.id) }}">
+      <form method="POST" action="{{ url_for('main.atualizar_ocorrencia', id=ocorrencia.id) }}" enctype="multipart/form-data">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
-
-          <!-- Status atual + opção de alterar -->
-          <div style="display:flex;align-items:center;justify-content:space-between;
-                      padding:10px 14px;background:var(--surface-2);border-radius:var(--radius-sm);
-                      border:1px solid var(--border)">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:12px;font-weight:600;color:var(--text-3)">STATUS ATUAL</span>
-              {% if ocorrencia.status == 'aberta' %}
-                <span class="pill pill-open">Aberta</span>
-              {% else %}
-                <span class="pill pill-andamento">Em andamento</span>
-              {% endif %}
-            </div>
-            {% if ocorrencia.status == 'aberta' %}
-            
-            {% else %}
-            {# Em andamento — hidden para manter o status #}
-            
-            <span style="font-size:12px;color:var(--text-3)">Encerre para finalizar</span>
-            {% endif %}
-          </div>
-
           <label class="lbl">O que foi feito?
             <textarea class="field" name="andamento" rows="4" required style="margin-top:5px"
               placeholder="Descreva o que foi feito, apurado ou os próximos passos…"></textarea>
           </label>
+          <div>
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:5px;font-weight:500">Anexar documento (opcional)</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;
+       padding:8px 12px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);gap:10px"
+       id="attach-box-and">
+  <span id="attach-info-and" style="font-size:12.5px;color:var(--text-3);flex:1">
+    Nenhum arquivo selecionado
+  </span>
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0;font-size:12px">
+    Anexar arquivo
+    <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+           style="display:none" onchange="previewAnexoLog(this, 'and')">
+  </label>
+</div>
+          </div>
+          {% if current_user.perfil == 'coordenacao' %}
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;
+                        padding:10px 12px;background:var(--amber-soft);border-radius:var(--radius-sm);
+                        border:1px solid var(--amber-border)">
+            <input type="checkbox" name="sigiloso" value="1"
+                   style="accent-color:var(--amber);width:15px;height:15px;flex-shrink:0">
+            <span style="font-size:13px;color:var(--amber-text)">
+              {{ icon('lock', 13) }} Visível apenas para a coordenação
+            </span>
+          </label>
+          {% endif %}
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary btn-sm">{{ icon('check', 13) }} Registrar</button>
@@ -206,7 +244,7 @@
     <!-- Encaminhar -->
     {% if opcoes %}
     <div id="aba-encaminhar" class="aba-conteudo" style="display:none">
-      <form method="POST" action="{{ url_for('main.encaminhar_ocorrencia', id=ocorrencia.id) }}">
+      <form method="POST" action="{{ url_for('main.encaminhar_ocorrencia', id=ocorrencia.id) }}" enctype="multipart/form-data">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
           <label class="lbl">Encaminhar para
             <select class="sel" name="responsavel_id" required style="margin-top:5px">
@@ -226,6 +264,21 @@
               placeholder="Por que está encaminhando?"></textarea>
           </label>
         </div>
+        <div style="padding:0 20px 12px">
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:5px;font-weight:500">Anexar documento (opcional)</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;
+       padding:8px 12px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);gap:10px"
+       id="attach-box-enc">
+  <span id="attach-info-enc" style="font-size:12.5px;color:var(--text-3);flex:1">
+    Nenhum arquivo selecionado
+  </span>
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0;font-size:12px">
+    Anexar arquivo
+    <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+           style="display:none" onchange="previewAnexoLog(this, 'enc')">
+  </label>
+</div>
+        </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-secondary btn-sm">{{ icon('send', 13) }} Encaminhar</button>
         </div>
@@ -235,7 +288,7 @@
 
     <!-- Encerrar -->
     <div id="aba-encerrar" class="aba-conteudo" style="display:none">
-      <form method="POST" action="{{ url_for('main.encerrar_ocorrencia', id=ocorrencia.id) }}"
+      <form method="POST" action="{{ url_for('main.encerrar_ocorrencia', id=ocorrencia.id) }}" enctype="multipart/form-data"
             onsubmit="return confirm('Confirmar encerramento? Esta ação não pode ser desfeita.')">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
           <div class="notice">Esta ação é permanente e não pode ser desfeita.</div>
@@ -243,6 +296,34 @@
             <textarea class="field" name="resolucao" rows="4" required style="margin-top:5px"
               placeholder="Descreva como a situação foi resolvida…"></textarea>
           </label>
+        </div>
+        <div style="padding:0 20px 12px;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:5px;font-weight:500">Anexar documento (opcional)</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;
+       padding:8px 12px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);gap:10px"
+       id="attach-box-close">
+  <span id="attach-info-close" style="font-size:12.5px;color:var(--text-3);flex:1">
+    Nenhum arquivo selecionado
+  </span>
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0;font-size:12px">
+    Anexar arquivo
+    <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+           style="display:none" onchange="previewAnexoLog(this, 'close')">
+  </label>
+</div>
+          </div>
+          {% if current_user.perfil == 'coordenacao' %}
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;
+                        padding:10px 12px;background:var(--amber-soft);border-radius:var(--radius-sm);
+                        border:1px solid var(--amber-border)">
+            <input type="checkbox" name="sigiloso" value="1"
+                   style="accent-color:var(--amber);width:15px;height:15px;flex-shrink:0">
+            <span style="font-size:13px;color:var(--amber-text)">
+              {{ icon('lock', 13) }} Resolução visível apenas para a coordenação
+            </span>
+          </label>
+          {% endif %}
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-danger btn-sm">{{ icon('lock', 13) }} Confirmar encerramento</button>
@@ -259,6 +340,26 @@
 </div>
 
 <script>
+function previewAnexoLog(input, suffix) {
+  const info = document.getElementById('attach-info-' + suffix);
+  const box  = document.getElementById('attach-box-' + suffix);
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (file.size > 10 * 1024 * 1024) {
+    alert('O arquivo deve ter no máximo 10 MB.');
+    input.value = '';
+    return;
+  }
+  const kb  = file.size / 1024;
+  const tam = kb > 1024 ? (kb/1024).toFixed(1)+' MB' : kb.toFixed(0)+' KB';
+  info.textContent       = file.name + ' · ' + tam;
+  info.style.color       = 'var(--text-1)';
+  info.style.fontWeight  = '500';
+  box.style.borderColor  = 'var(--green)';
+  box.style.borderStyle  = 'solid';
+  box.style.background   = 'var(--green-soft)';
+}
+
 function trocarAba(id, btn) {
   document.querySelectorAll('.aba-conteudo').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.aba-btn').forEach(b => {

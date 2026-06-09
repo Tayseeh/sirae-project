@@ -45,6 +45,8 @@ class LogAuditoria(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     acao = db.Column(db.String(50), nullable=False)
     descricao_acao = db.Column(db.Text, nullable=True)
+    sigiloso       = db.Column(db.Boolean, default=False)  # visível só para coordenação
+    anexo_log      = db.Column(db.String(200), nullable=True)  # anexo específico deste log
     data_hora = db.Column(db.DateTime, default=datetime.utcnow)
 
     usuario = db.relationship('Usuario', backref='logs')
