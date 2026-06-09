@@ -1,10 +1,13 @@
- # SIRAE – Sistema de Registro e Acompanhamento Estudantil
+# SIRAE — Sistema de Registro e Acompanhamento Estudantil
 
-**Grupo 17 | Projeto Aplicado I – UniSENAI 2025/02**
+> Desenvolvido para o **SENAI Antônio Adolpho Lobbe** · São Carlos, SP  
+> Disciplina: Projeto Aplicado I · UniSENAI  
 
-## Descrição
+---
 
-Sistema web para cadastro e acompanhamento de ocorrências do setor de apoio estudantil, desenvolvido com Python, Flask e MySQL.
+## Sobre o projeto
+
+O SIRAE é uma aplicação web de gestão de ocorrências estudantis desenvolvida para o setor de apoio do SENAI AAL. Permite o registro, acompanhamento e encerramento de ocorrências de alunos dos cursos técnicos, de graduação e pós-graduação, com controle de acesso por perfil (Atendente, Pedagogo, Coordenação e Administrador TI).
 
 ---
 
@@ -12,7 +15,55 @@ Sistema web para cadastro e acompanhamento de ocorrências do setor de apoio est
 
 - Python 3.10 ou superior
 - MySQL 8.0 ou superior
-- pip
+- pip (gerenciador de pacotes Python)
+
+---
+
+## Subir no GitHub (primeira vez)
+
+> Execute os comandos no terminal integrado do VS Code (`Ctrl+\`` ou Terminal → Novo Terminal)
+
+### 1. Crie o `.gitignore` na raiz do projeto
+
+```bash
+echo ".venv/
+__pycache__/
+*.pyc
+app/static/uploads/
+*.db
+.env" > .gitignore
+```
+
+### 2. Inicialize o repositório Git
+
+```bash
+git init
+git add .
+git commit -m "feat: SIRAE - Sistema de Registro e Acompanhamento Estudantil"
+```
+
+### 3. Crie o repositório no GitHub
+
+- Acesse [github.com](https://github.com) → botão **New repository**
+- Nome: `sirae-project` · Visibilidade: **Public**
+- **Não** marque nenhuma opção de inicialização (README, .gitignore)
+- Clique em **Create repository**
+
+### 4. Conecte e envie
+
+```bash
+git remote add origin https://github.com/SEU-USUARIO/sirae-project.git
+git branch -M main
+git push -u origin main
+```
+
+### 5. Para enviar atualizações futuras
+
+```bash
+git add .
+git commit -m "descricao da alteracao"
+git push
+```
 
 ---
 
@@ -21,19 +72,19 @@ Sistema web para cadastro e acompanhamento de ocorrências do setor de apoio est
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/Tayseeh/sirae-project.git
+git clone https://github.com/seu-usuario/sirae-project.git
 cd sirae-project
 ```
 
 ### 2. Crie e ative o ambiente virtual
 
 ```bash
-python -m venv .venv
-
 # Windows
+python -m venv .venv
 .venv\Scripts\activate
 
-# Linux/Mac
+# Linux / macOS
+python -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -45,22 +96,30 @@ pip install -r requirements.txt
 
 ### 4. Configure o banco de dados
 
-No MySQL, crie o banco:
+Crie o banco no MySQL:
 
 ```sql
 CREATE DATABASE sirae_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Edite `config.py` com suas credenciais MySQL:
-
-```python
-SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://SEU_USUARIO:SUA_SENHA@localhost/sirae_db'
-```
-
-### 5. Crie as tabelas e popule com dados iniciais
+Configure as variáveis de ambiente (ou edite `config.py`):
 
 ```bash
-python seed.py
+# Windows (PowerShell)
+$env:DATABASE_URL = "mysql+mysqlconnector://root:SUA_SENHA@localhost/sirae_db"
+$env:SECRET_KEY   = "chave-secreta-desenvolvimento"
+
+# Linux / macOS
+export DATABASE_URL="mysql+mysqlconnector://root:SUA_SENHA@localhost/sirae_db"
+export SECRET_KEY="chave-secreta-desenvolvimento"
+```
+
+### 5. Crie as tabelas e popule o banco
+
+```bash
+python run.py        # cria as tabelas automaticamente
+# Em outro terminal (ou após Ctrl+C):
+python seed.py       # insere dados de exemplo
 ```
 
 ### 6. Execute a aplicação
@@ -69,30 +128,22 @@ python seed.py
 python run.py
 ```
 
-Acesse: **http://localhost:5000**
+Acesse em: **http://localhost:5000**
 
 ---
 
 ## Credenciais de teste
 
-| Usuário | Email | Senha | Perfil |
-|---------|-------|-------|--------|
-| Administrador | admin@sirae.com | admin123 | admin |
-| Atendente | atendente@sirae.com | 123456 | atendente |
-| Coordenadora | coord@sirae.com | 123456 | coordenacao |
-
----
-
-## Dependências principais
-
-```
-Flask==3.0.0
-Flask-SQLAlchemy==3.1.1
-Flask-Login==0.6.3
-mysql-connector-python==8.3.0
-PyMySQL==1.2.0
-Werkzeug==3.0.1
-```
+| E-mail | Senha | Perfil |
+|--------|-------|--------|
+| admin@sirae.com.br | admin123 | Administrador (TI) |
+| ana.lima@sirae.com.br | 123456 | Atendente |
+| carlos.m@sirae.com.br | 123456 | Atendente |
+| patricia@sirae.com.br | 123456 | Atendente |
+| fernanda.p@sirae.com.br | 123456 | Pedagogo |
+| rodrigo.b@sirae.com.br | 123456 | Pedagogo |
+| marcos.r@sirae.com.br | 123456 | Coordenação |
+| juliana.c@sirae.com.br | 123456 | Coordenação |
 
 ---
 
@@ -101,24 +152,47 @@ Werkzeug==3.0.1
 ```
 sirae-project/
 ├── app/
+│   ├── __init__.py          # Factory function, blueprints, extensões
+│   ├── utils.py             # Decoradores de controle de acesso
 │   ├── models/
-│   │   ├── usuario.py       # Classe Usuario (POO)
-│   │   └── ocorrencia.py    # Classes Ocorrencia e LogAuditoria (POO)
+│   │   ├── usuario.py       # Entidade Usuario (Flask-Login)
+│   │   ├── aluno.py         # Entidade Aluno
+│   │   ├── ocorrencia.py    # Entidades Ocorrencia e LogAuditoria
+│   │   └── log_admin.py     # Entidade LogAdmin
 │   ├── routes/
-│   │   ├── auth_routes.py   # Rotas de autenticação
-│   │   └── main_routes.py   # Rotas principais (CRUD)
-│   ├── templates/           # Páginas HTML (Jinja2)
-│   ├── static/css/          # Estilos CSS
-│   └── __init__.py          # Factory da aplicação
-├── config.py                # Configurações do banco
+│   │   ├── auth_routes.py   # Autenticação e perfil do usuário
+│   │   ├── main_routes.py   # Ocorrências, dashboard, relatórios
+│   │   ├── aluno_routes.py  # CRUD de alunos
+│   │   └── admin_routes.py  # Gestão de usuários (TI)
+│   ├── static/              # CSS, imagens, uploads
+│   └── templates/           # Templates Jinja2
+├── config.py                # Configurações da aplicação
 ├── run.py                   # Ponto de entrada
-└── seed.py                  # Dados iniciais
+├── seed.py                  # Dados de exemplo
+└── requirements.txt         # Dependências
 ```
 
 ---
 
-## Estratégia de versionamento
+## Justificativa de versionamento
 
-O projeto adota o modelo **Git Flow simplificado** com uso de branches por funcionalidade. A branch `main` contém sempre a versão estável e funcional do sistema. Cada integrante trabalha em sua própria branch (`feature/nome-funcionalidade`) e abre um Pull Request para revisão antes de integrar ao `main`. Essa abordagem evita conflitos de código e garante que nenhuma alteração incompleta seja enviada para a versão principal.
+O versionamento do SIRAE foi conduzido utilizando o Git como sistema de controle de versão distribuído, com repositório hospedado no GitHub. A estratégia adotada pelo grupo seguiu o modelo de **trunk-based development simplificado**, onde a branch principal (`main`) concentra o código estável e funcional a cada entrega.
 
-Os commits seguem uma convenção descritiva: `feat:`, `fix:`, `docs:`, `refactor:`, indicando claramente o tipo de mudança. O histórico de commits comprova a participação de cada membro nas respectivas áreas de responsabilidade. O arquivo `.gitignore` foi configurado para excluir o ambiente virtual (`.venv/`), arquivos de configuração sensíveis e caches Python, garantindo que apenas o código-fonte e os arquivos essenciais sejam versionados. A integridade do código é mantida porque nenhuma alteração vai direto ao `main` sem revisão de ao menos um outro membro da equipe.
+Durante o desenvolvimento, cada funcionalidade relevante foi consolidada em commits atômicos e descritivos, facilitando a rastreabilidade das alterações. Os commits foram organizados de forma a refletir incrementos funcionais reais — como a implementação do sistema de ocorrências, do controle de acesso por perfil, do módulo de relatórios e das funcionalidades de segurança como registros sigilosos.
+
+A integridade do código foi garantida por meio de testes manuais após cada incremento antes do commit, evitando que código quebrado fosse consolidado na branch principal. O arquivo `requirements.txt` foi mantido atualizado ao longo de todo o desenvolvimento, garantindo que qualquer membro da equipe pudesse reproduzir o ambiente de execução de forma idêntica.
+
+A separação clara entre o código-fonte da aplicação (`app/`), as configurações (`config.py`), o ponto de entrada (`run.py`) e os dados de seed (`seed.py`) facilitou a divisão de responsabilidades entre os membros e reduziu conflitos de merge. Arquivos sensíveis como credenciais de banco de dados foram mantidos como variáveis de ambiente, nunca versionados diretamente no repositório, seguindo as boas práticas de segurança em projetos de software.
+
+---
+
+## Tecnologias utilizadas
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Backend | Python 3.12 + Flask 3.0 |
+| ORM / Banco | Flask-SQLAlchemy + MySQL 8 |
+| Autenticação | Flask-Login + Werkzeug (hash bcrypt) |
+| Frontend | Jinja2 + CSS puro (Design System próprio) |
+| Ícones | Lucide Icons (SVG inline) |
+
