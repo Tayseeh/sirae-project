@@ -18,9 +18,9 @@ Sistema web para cadastro e acompanhamento de ocorrências do setor de apoio est
 
 | Linguagem | Percentual |
 |-----------|-----------|
-| HTML      | 53%       |
-| Python    | 35.3%     |
-| CSS       | 11.7%     |
+| HTML      | 53.6%     |
+| Python    | 34.6%     |
+| CSS       | 11.8%     |
 
 ---
 
