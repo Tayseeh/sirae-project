@@ -1,4 +1,4 @@
-# SIRAE – Sistema de Registro e Acompanhamento Estudantil
+ # SIRAE – Sistema de Registro e Acompanhamento Estudantil
 
 **Grupo 17 | Projeto Aplicado I – UniSENAI 2025/02**
 
