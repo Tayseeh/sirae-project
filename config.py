@@ -22,6 +22,6 @@ class Config:
  
     SQLALCHEMY_TRACK_MODIFICATIONS = False
  
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=1)
     SESSION_PERMANENT = True
  
