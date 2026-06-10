@@ -1,0 +1,190 @@
+{% from 'icons.html' import icon %}
+{% extends "base.html" %}
+{% block title %}Relatórios{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Relatórios{% if filtro_tipo %} — {{ filtro_tipo }}{% endif %}</h1>
+    <p class="subtitle">{% if filtro_tipo %}Filtrado por tipo. <a href="{{ url_for('main.relatorios') }}" style="color:var(--green-text)">Ver tudo</a>{% else %}Visão consolidada das ocorrências do setor de apoio.{% endif %}</p>
+  </div>
+  <a href="{{ url_for('main.exportar_relatorio') }}{% if filtro_tipo %}?tipo={{ filtro_tipo }}{% endif %}"
+     target="_blank" class="btn btn-primary">{{ icon('printer', 13) }} Exportar PDF</a>
+</div>
+
+<!-- Métricas -->
+<div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+  <div class="metric">
+    <div class="metric-label">{% if filtro_tipo %}{{ filtro_tipo }}{% else %}Total{% endif %}</div>
+    <div class="metric-value">{{ total }}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Encerradas</div>
+    <div class="metric-value" style="color:var(--green)">{{ encerradas }}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Taxa de resolução</div>
+    <div class="metric-value">{{ taxa }}%</div>
+    <div class="metric-trend">{% if taxa >= 70 %}bom desempenho{% else %}requer atenção{% endif %}</div>
+  </div>
+</div>
+
+<!-- Gráficos -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+
+  <div class="panel">
+    <div class="panel-head"><h2>Ocorrências por tipo</h2></div>
+    <div style="padding:16px 20px">
+      {% set total_geral = por_tipo_geral | sum(attribute=1) %}
+      {% for tipo, qtd in por_tipo_geral %}
+      {% set pct = ((qtd / total_geral * 100)|int) if total_geral else 0 %}
+      <a href="{{ url_for('main.relatorios') }}?tipo={{ tipo }}"
+         style="display:block;text-decoration:none;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13.5px">
+          <span style="color:{% if filtro_tipo == tipo %}var(--green-text){% else %}var(--text-1){% endif %};
+                       font-weight:{% if filtro_tipo == tipo %}600{% else %}400{% endif %}">
+            {{ tipo }}{% if filtro_tipo == tipo %} ✓{% endif %}
+          </span>
+          <strong>{{ qtd }}</strong>
+        </div>
+        <div style="height:7px;background:var(--surface-2);border-radius:999px;overflow:hidden">
+          <div style="height:100%;width:{{ pct }}%;background:var(--green);border-radius:999px;
+                      opacity:{% if filtro_tipo and filtro_tipo != tipo %}0.3{% else %}1{% endif %}"></div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Por status{% if filtro_tipo %} <span style="font-size:12px;font-weight:400;color:var(--text-3)">— {{ filtro_tipo }}</span>{% endif %}</h2>
+    </div>
+    <div style="padding:16px 20px">
+      {% set labels = {'aberta':'Aberta','em_andamento':'Em andamento','encerrada':'Encerrada'} %}
+      {% set cores  = {'aberta':'var(--amber)','em_andamento':'var(--blue)','encerrada':'var(--green)'} %}
+      {% for status, qtd in por_status %}
+      {% set pct = ((qtd / total * 100)|int) if total else 0 %}
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13.5px">
+          <span>{{ labels.get(status, status) }}</span><strong>{{ qtd }}</strong>
+        </div>
+        <div style="height:7px;background:var(--surface-2);border-radius:999px;overflow:hidden">
+          <div style="height:100%;width:{{ pct }}%;background:{{ cores.get(status,'var(--green)') }};border-radius:999px"></div>
+        </div>
+      </div>
+      {% else %}
+      <p style="color:var(--text-3)">Sem dados para este filtro.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Carga por responsável{% if filtro_tipo %} <span style="font-size:12px;font-weight:400;color:var(--text-3)">— {{ filtro_tipo }}</span>{% endif %}</h2>
+    </div>
+    <div style="padding:4px 0">
+      {% for nome, qtd in por_atendente %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 20px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="width:30px;height:30px;font-size:12px;background:var(--green-soft);color:var(--green-text);border-color:var(--green-border)">{{ nome[0]|upper }}</div>
+          <span style="font-size:13.5px">{{ nome }}</span>
+        </div>
+        <span class="pill pill-andamento">{{ qtd }} ocorrência{{ 's' if qtd > 1 }}</span>
+      </div>
+      {% else %}
+      <p style="color:var(--text-3);padding:16px 20px">Sem dados.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Alunos com mais ocorrências{% if filtro_tipo %} <span style="font-size:12px;font-weight:400;color:var(--text-3)">— {{ filtro_tipo }}</span>{% endif %}</h2>
+    </div>
+    <div style="padding:4px 0">
+      {% for nome, qtd in por_aluno %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 20px;border-bottom:1px solid var(--border)">
+        <span style="font-size:13.5px;font-weight:{% if qtd >= 2 %}600{% else %}400{% endif %};
+                     color:{% if qtd >= 3 %}var(--red-text){% else %}var(--text-1){% endif %}">
+          {{ nome }}{% if qtd >= 3 %} <span style="font-size:11px;font-weight:400"> · reincidente</span>{% endif %}
+        </span>
+        <span class="pill {% if qtd >= 3 %}pill-open{% else %}pill-closed{% endif %}">{{ qtd }}</span>
+      </div>
+      {% else %}
+      <p style="color:var(--text-3);padding:16px 20px">Sem dados.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Filtros rápidos -->
+<div style="margin-bottom:20px">
+  <h2 style="font-size:15px;font-weight:600;margin-bottom:12px">Filtros rápidos</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    {% for tipo_card, icone, titulo, desc in [
+        ('Evasão',      'folder-open',  'Risco de Evasão',             'Ocorrências de Evasão em aberto ou em andamento.'),
+        ('Psicossocial','user',         'Acompanhamento Psicossocial', 'Casos psicossociais ativos e encerrados no período.'),
+        ('Financeiro',  'bar-chart-2',  'Situação Financeira',         'Alunos com ocorrências financeiras em aberto.'),
+    ] %}
+    <a href="{{ url_for('main.relatorios') }}{% if filtro_tipo != tipo_card %}?tipo={{ tipo_card }}{% endif %}"
+       class="panel" style="padding:16px 20px;text-decoration:none;display:block;
+       {% if filtro_tipo == tipo_card %}border-color:var(--green);background:var(--green-soft){% endif %}">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:6px;
+                  color:{% if filtro_tipo == tipo_card %}var(--green-text){% else %}var(--text-1){% endif %}">
+        {{ icon(icone, 14) }} {{ titulo }}
+      </div>
+      <div style="font-size:12px;color:var(--text-3)">{{ desc }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Listagem filtrada -->
+{% if filtro_tipo and ocorrencias_filtradas %}
+<div class="panel">
+  <div class="panel-head">
+    <h2>Ocorrências — {{ filtro_tipo }}</h2>
+    <p>{{ ocorrencias_filtradas|length }} registro{{ 's' if ocorrencias_filtradas|length != 1 }} encontrado{{ 's' if ocorrencias_filtradas|length != 1 }}.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:center">ID</th>
+          <th>Aluno</th>
+          <th>Curso</th>
+          <th style="text-align:center">Status</th>
+          <th>Responsável</th>
+          <th style="text-align:center">Data</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in ocorrencias_filtradas %}
+        <tr>
+          <td style="text-align:center"><span class="id-mono">#{{ '%04d' % o.id }}</span></td>
+          <td style="font-weight:500">{{ o.aluno.nome }}</td>
+          <td style="color:var(--text-3);font-size:13px">{{ o.aluno.curso or '—' }}</td>
+          <td style="text-align:center">
+            {% if o.status == 'aberta' %}<span class="pill pill-open">Aberta</span>
+            {% elif o.status == 'em_andamento' %}<span class="pill pill-andamento">Em andamento</span>
+            {% else %}<span class="pill pill-done">Encerrada</span>{% endif %}
+          </td>
+          <td style="color:var(--text-2)">{{ o.responsavel.nome }}</td>
+          <td style="color:var(--text-3);white-space:nowrap;text-align:center">{{ o.data_criacao.strftime('%d/%m/%Y') }}</td>
+          <td><a href="{{ url_for('main.ver_ocorrencia', id=o.id) }}" class="btn btn-ghost btn-sm">{{ icon('eye', 13) }} Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif filtro_tipo %}
+<div class="panel" style="padding:32px;text-align:center">
+  <p style="color:var(--text-3)">Nenhuma ocorrência do tipo <strong>{{ filtro_tipo }}</strong> encontrada.</p>
+</div>
+{% endif %}
+
+{% endblock %}

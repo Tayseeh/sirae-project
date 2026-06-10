@@ -1,0 +1,162 @@
+{% from 'icons.html' import icon %}
+{% extends "base.html" %}
+{% block title %}{{ aluno.nome }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+ <div style="display:flex;align-items:center;gap:20px">
+ <!-- Foto -->
+ <div style="width:72px;height:72px;border-radius:50%;overflow:hidden;
+ background:#f1f5f9;border:3px solid var(--line);flex-shrink:0">
+ {% if aluno.foto %}
+ <img src="{{ url_for('static', filename=aluno.foto) }}"
+ style="width:100%;height:100%;object-fit:cover">
+ {% else %}
+ <div style="width:100%;height:100%;display:flex;align-items:center;
+ justify-content:center;font-size:28px;color:var(--muted)">
+ {{ aluno.nome[0] | upper }}
+ </div>
+ {% endif %}
+ </div>
+ <div>
+ <h1 style="margin-bottom:4px">{{ aluno.nome }}</h1>
+ <p class="subtitle">
+ {{ aluno.matricula or 'Sem matrícula' }}
+ {% if aluno.serie %} · {{ aluno.serie }}{% endif %}
+ {% if aluno.turma %} · Turma {{ aluno.turma }}{% endif %}
+ {% if aluno.turno %} · {{ aluno.turno }}{% endif %}
+ {% if aluno.menor_de_idade %}
+ <span style="background:var(--amber-soft);color:var(--amber);
+ padding:2px 8px;border-radius:999px;font-size:11px;
+ font-weight:800;margin-left:6px">Menor de idade</span>
+ {% endif %}
+ </p>
+ </div>
+ </div>
+ <div style="display:flex;gap:10px">
+ <a href="{{ url_for('alunos.listar') }}" class="btn btn-secondary">{{ icon('arrow-left', 13) }} Voltar</a>
+ <a href="{{ url_for('alunos.editar', id=aluno.id) }}" class="btn btn-ghost">{{ icon('pencil', 13) }} Editar</a>
+ <a href="{{ url_for('main.nova_ocorrencia') }}?aluno_id={{ aluno.id }}" class="btn btn-primary">{{ icon('plus', 13) }} Nova Ocorrência</a>
+ </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1.3fr;gap:20px;align-items:start">
+
+ <!-- Esquerda: dados -->
+ <div style="display:flex;flex-direction:column;gap:16px">
+
+ <div class="panel">
+ <div class="panel-head"><h2>Dados pessoais</h2></div>
+ <div style="padding:4px 0">
+ {% macro row(label, val) %}
+ <div style="display:flex;justify-content:space-between;align-items:center;
+ padding:12px 20px;border-bottom:1px solid #f1f5f9">
+ <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">{{ label }}</span>
+ <span style="font-size:14px;font-weight:600;text-align:right">{{ val or '—' }}</span>
+ </div>
+ {% endmacro %}
+ {{ row('CPF', aluno.cpf) }}
+ {{ row('Nascimento', aluno.data_nascimento.strftime('%d/%m/%Y') if aluno.data_nascimento else None) }}
+ {{ row('Idade', (aluno.idade|string + ' anos') if aluno.idade else None) }}
+ {{ row('E-mail', aluno.email) }}
+ {{ row('Telefone', aluno.telefone) }}
+ </div>
+ </div>
+
+ <div class="panel">
+ <div class="panel-head"><h2>Dados acadêmicos</h2></div>
+ <div style="padding:4px 0">
+ {% macro row(label, val) %}
+ <div style="display:flex;justify-content:space-between;align-items:center;
+ padding:12px 20px;border-bottom:1px solid #f1f5f9">
+ <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">{{ label }}</span>
+ <span style="font-size:14px;font-weight:600">{{ val or '—' }}</span>
+ </div>
+ {% endmacro %}
+ {{ row('Matrícula', aluno.matricula) }}
+ {{ row('Nível', 'Técnico' if aluno.nivel == 'tecnico' else ('Graduação' if aluno.nivel == 'graduacao' else ('Pós-graduação' if aluno.nivel == 'pos' else (aluno.nivel or '—')))) }}
+ {{ row('Curso', aluno.curso) }}
+ {{ row('Semestre', aluno.serie) }}
+ {{ row('Turma', ('Turma ' + aluno.turma) if aluno.turma else None) }}
+ {{ row('Turno', aluno.turno) }}
+ </div>
+ </div>
+
+ <div class="panel">
+ <div class="panel-head"><h2>{% if aluno.tipo_contato == "responsavel" %}Responsável legal{% else %}Contato de emergência{% endif %}</h2></div>
+ <div style="padding:4px 0">
+ {% macro row(label, val) %}
+ <div style="display:flex;justify-content:space-between;align-items:center;
+ padding:12px 20px;border-bottom:1px solid #f1f5f9">
+ <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">{{ label }}</span>
+ <span style="font-size:14px;font-weight:600;text-align:right">{{ val or '—' }}</span>
+ </div>
+ {% endmacro %}
+ {{ row('Nome', aluno.responsavel_nome) }}
+ {{ row('Parentesco', aluno.responsavel_parentesco) }}
+ {{ row('CPF', aluno.responsavel_cpf) }}
+ {{ row('Telefone', aluno.responsavel_contato) }}
+ {{ row('E-mail', aluno.responsavel_email) }}
+ </div>
+ </div>
+
+ </div>
+
+ <!-- Direita: ocorrências -->
+ <div class="panel">
+ <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center">
+ <div>
+ <h2>Histórico de ocorrências</h2>
+ <p>{{ aluno.total_ocorrencias }} ocorrência{{ 's' if aluno.total_ocorrencias != 1 }} registrada{{ 's' if aluno.total_ocorrencias != 1 }}</p>
+ </div>
+ {% if aluno.ocorrencias_ativas %}
+ <span class="pill pill-open">{{ aluno.ocorrencias_ativas|length }} ativa{{ 's' if aluno.ocorrencias_ativas|length > 1 }}</span>
+ {% endif %}
+ </div>
+
+ {% if aluno.ocorrencias %}
+ {% for o in aluno.ocorrencias | sort(attribute='data_criacao', reverse=true) %}
+ <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:14px">
+ <span class="audit-dot
+ {% if o.status == 'aberta' %}amber
+ {% elif o.status == 'em_andamento' %}blue
+ {% else %}green{% endif %}"
+ style="margin-top:5px;flex-shrink:0"></span>
+ <div style="flex:1">
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+ <strong style="font-size:14px">{{ o.tipo }}</strong>
+ {% if o.status == 'aberta' %}
+ <span class="pill pill-open">Aberta</span>
+ {% elif o.status == 'em_andamento' %}
+ <span class="pill pill-andamento">Em andamento</span>
+ {% else %}
+ <span class="pill pill-done">Encerrada</span>
+ {% endif %}
+ </div>
+ <p style="font-size:13px;color:var(--muted);line-height:1.4;margin-bottom:6px">
+ {{ o.descricao[:120] }}{% if o.descricao|length > 120 %}...{% endif %}
+ </p>
+ <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+ <span style="font-size:11px;color:var(--muted)">{{ o.data_criacao.strftime('%d/%m/%Y às %H:%M') }}</span>
+ {% if o.encaminhamento %}
+ <span style="font-size:11px;background:var(--blue-soft);color:var(--blue);
+ padding:2px 8px;border-radius:999px;font-weight:700">→ {{ o.encaminhamento }}</span>
+ {% endif %}
+ {% if o.status != 'encerrada' %}
+ <a href="{{ url_for('main.ver_ocorrencia', id=o.id) }}"
+ style="font-size:12px;color:var(--green-text);text-decoration:none;margin-left:auto">{{ icon('eye', 12) }} Ver</a>
+ {% endif %}
+ </div>
+ </div>
+ </div>
+ {% endfor %}
+ {% else %}
+ <div class="empty-state" style="padding:40px">
+ <div class="icon"></div>
+ <p>Nenhuma ocorrência registrada para este aluno.</p>
+ </div>
+ {% endif %}
+ </div>
+
+</div>
+{% endblock %}

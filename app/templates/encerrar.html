@@ -1,0 +1,58 @@
+{% from 'icons.html' import icon %}
+{% extends "base.html" %}
+{% block title %}Encerrar #{{ '%04d' % ocorrencia.id }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+ <div>
+ <h1>Encerrar ocorrência <span style="color:var(--text-3);font-weight:400">#{{ '%04d' % ocorrencia.id }}</span></h1>
+ <p class="subtitle">Registre a resolução antes de encerrar. Esta ação não pode ser desfeita.</p>
+ </div>
+ <a href="{{ url_for('main.ver_ocorrencia', id=ocorrencia.id) }}" class="btn btn-ghost">{{ icon('arrow-left', 13) }} Voltar</a>
+</div>
+
+<div class="panel" style="margin-bottom:16px">
+ <div class="panel-head"><h2>Resumo da ocorrência</h2></div>
+ <div style="padding:18px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+ <div>
+ <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Aluno</div>
+ <div style="font-weight:500">{{ ocorrencia.aluno.nome }}</div>
+ </div>
+ <div>
+ <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Tipo</div>
+ <div>{{ ocorrencia.tipo }}</div>
+ </div>
+ <div>
+ <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Aberta em</div>
+ <div>{{ ocorrencia.data_criacao.strftime('%d/%m/%Y') }}</div>
+ </div>
+ <div style="grid-column:1/-1">
+ <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Descrição</div>
+ <div style="font-size:13.5px;color:var(--text-2);line-height:1.6">{{ ocorrencia.descricao }}</div>
+ </div>
+ </div>
+</div>
+
+<div class="panel" style="max-width:600px">
+ <div class="panel-head">
+ <h2>Resolução</h2>
+ <p>Obrigatório — descreva como a situação foi resolvida.</p>
+ </div>
+ <form method="POST">
+ <div style="padding:20px">
+ <label class="lbl">Como a ocorrência foi resolvida?
+ <textarea class="field" name="resolucao" rows="5" required
+ placeholder="Ex: Conversa realizada com o aluno e responsável. Situação regularizada. Encaminhado para acompanhamento pedagógico…"></textarea>
+ </label>
+ </div>
+ <div class="form-actions">
+ <a href="{{ url_for('main.ver_ocorrencia', id=ocorrencia.id) }}" class="btn btn-ghost btn-sm">{{ icon('x', 13) }} Cancelar</a>
+ <button type="submit" class="btn btn-danger btn-sm"
+ onclick="return confirm('Confirmar encerramento? Esta ação não pode ser desfeita.')">
+ Confirmar encerramento
+ </button>
+ </div>
+ </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,126 @@
+{% from 'icons.html' import icon %}
+{% extends "base.html" %}
+{% block title %}{% if usuario %}Editar usuário{% else %}Novo usuário{% endif %}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    {% if usuario %}<div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Editar usuário</div>{% endif %}
+    <h1>{% if usuario %}{{ usuario.nome }}{% else %}Novo usuário{% endif %}</h1>
+    <p class="subtitle">{% if usuario %}Atualize os dados de acesso e informações de contato.{% else %}Preencha os dados para criar uma nova conta de acesso.{% endif %}</p>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="{{ url_for('admin.usuarios') }}" class="btn btn-ghost">{{ icon('x', 13) }} Cancelar</a>
+    <button type="submit" form="form-usuario" class="btn btn-primary">
+      {{ icon('check', 13) }} {% if usuario %}Salvar alterações{% else %}Criar usuário{% endif %}
+    </button>
+  </div>
+</div>
+
+<form id="form-usuario" method="POST">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:860px;align-items:start">
+
+  <!-- Acesso -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Dados de acesso</h2>
+      <p>Credenciais e perfil de permissão no sistema.</p>
+    </div>
+    <div class="form-grid">
+
+      <label class="lbl wide">Nome completo
+        <input class="field" type="text" name="nome" required maxlength="100"
+               value="{{ usuario.nome if usuario else '' }}"
+               placeholder="Nome completo" style="margin-top:5px">
+      </label>
+
+      <label class="lbl wide">E-mail institucional
+        <input class="field" type="email" name="email" required
+               value="{{ usuario.email if usuario else '' }}"
+               placeholder="usuario@sirae.com" style="margin-top:5px">
+      </label>
+
+      <label class="lbl">Perfil de acesso
+        <select class="sel" name="perfil" required style="margin-top:5px">
+          <option value="">Selecione…</option>
+          <option value="atendente"   {% if usuario and usuario.perfil == 'atendente'   %}selected{% endif %}>Atendente</option>
+          <option value="pedagogia"   {% if usuario and usuario.perfil == 'pedagogia'   %}selected{% endif %}>Pedagogo</option>
+          <option value="coordenacao" {% if usuario and usuario.perfil == 'coordenacao' %}selected{% endif %}>Coordenação</option>
+          <option value="admin"       {% if usuario and usuario.perfil == 'admin'       %}selected{% endif %}>Administrador</option>
+        </select>
+      </label>
+
+      <label class="lbl">Senha {% if not usuario %}*{% endif %}
+        <input class="field" type="password" name="senha" style="margin-top:5px"
+               {% if not usuario %}required{% endif %} minlength="6"
+               placeholder="{{ 'Nova senha (opcional)' if usuario else 'Mínimo 6 caracteres' }}">
+      </label>
+
+    </div>
+  </div>
+
+  <!-- Contato -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Informações de contato</h2>
+      <p>Dados profissionais e telefone para contato interno.</p>
+    </div>
+    <div class="form-grid">
+
+      <label class="lbl wide">Cargo / Função
+        <input class="field" type="text" name="cargo" maxlength="100" style="margin-top:5px"
+               value="{{ usuario.cargo if usuario and usuario.cargo else '' }}"
+               placeholder="Ex: Atendente do Setor de Apoio">
+      </label>
+
+      <label class="lbl">Telefone
+        <input class="field" type="text" name="telefone" maxlength="15" style="margin-top:5px"
+               value="{{ usuario.telefone if usuario and usuario.telefone else '' }}"
+               placeholder="(44) 99999-9999"
+               oninput="mascaraTel(this)">
+        <span class="campo-hint">Com DDD</span>
+      </label>
+
+      <label class="lbl">Ramal
+        <input class="field" type="text" name="ramal" maxlength="10" style="margin-top:5px"
+               value="{{ usuario.ramal if usuario and usuario.ramal else '' }}"
+               placeholder="Ex: 2031"
+               oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      </label>
+
+      {% if usuario %}
+      <!-- Info readonly -->
+      <div class="wide" style="padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Status</div>
+            <div style="font-size:13.5px">{% if usuario.ativo %}<span style="color:var(--green-text)">Ativo</span>{% else %}<span style="color:var(--red-text)">Inativo</span>{% endif %}</div>
+          </div>
+          {% if usuario.ultimo_login %}
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Último acesso</div>
+            <div style="font-size:13px;color:var(--text-2)">{{ usuario.ultimo_login.strftime('%d/%m/%Y %H:%M') }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+</form>
+
+<script>
+function mascaraTel(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length === 11)      v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  else if (v.length >= 10)  v = v.replace(/^(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  else if (v.length > 6)    v = v.replace(/^(\d{2})(\d{4,5})(\d*)/, '($1) $2-$3');
+  else if (v.length > 2)    v = v.replace(/^(\d{2})(\d+)/, '($1) $2');
+  el.value = v;
+}
+</script>
+
+{% endblock %}

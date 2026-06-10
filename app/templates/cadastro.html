@@ -1,0 +1,176 @@
+{% from 'icons.html' import icon %}
+{% extends "base.html" %}
+{% block title %}Nova ocorrência{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>Nova ocorrência</h1>
+    <p class="subtitle">Registre uma nova ocorrência para um aluno.</p>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">{{ icon('x', 13) }} Cancelar</a>
+    <button type="submit" form="form-cadastro" class="btn btn-primary">{{ icon('check', 13) }} Registrar</button>
+  </div>
+</div>
+
+<div style="max-width:700px">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Dados do registro</h2>
+      <p>Busque o aluno e preencha as informações.</p>
+    </div>
+    <form id="form-cadastro" method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+
+        <!-- Busca de aluno -->
+        <div class="wide" style="position:relative">
+          <label class="lbl">Aluno
+            <input id="busca-aluno" class="field" type="text"
+                   placeholder="Digite o nome ou matrícula para buscar…"
+                   autocomplete="off" style="margin-top:5px">
+            <input type="hidden" name="aluno_id" id="aluno_id">
+          </label>
+          <div id="sugestoes" style="display:none;position:absolute;top:100%;left:0;right:0;
+            background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+            box-shadow:var(--shadow-md);z-index:50;margin-top:3px;overflow:hidden"></div>
+        </div>
+
+        <!-- Card do aluno selecionado -->
+        <div id="card-aluno" class="wide" style="display:none;padding:12px 14px;
+          background:var(--green-soft);border-radius:var(--radius-sm);
+          border:1px solid var(--green-border)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div id="card-nome" style="font-weight:500;font-size:14px;color:var(--green-text)"></div>
+              <div id="card-info" style="font-size:12px;color:var(--text-3);margin-top:1px"></div>
+            </div>
+            <button type="button" onclick="limparAluno()"
+                    style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;line-height:1;padding:0 4px">×</button>
+          </div>
+        </div>
+
+        <label class="lbl wide">Tipo de ocorrência
+          <select class="sel" name="tipo" required style="margin-top:5px">
+            <option value="">Selecione…</option>
+            {% for t in ['Disciplinar','Acadêmico','Financeiro','Saúde','Familiar','Evasão','Psicossocial'] %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="lbl wide">Descrição
+          <textarea class="field" name="descricao" rows="5" required style="margin-top:5px"
+            placeholder="Descreva objetivamente a situação, o que foi observado e os próximos passos…"></textarea>
+        </label>
+
+        <!-- Anexo -->
+        <div class="wide">
+          <label class="lbl">Anexo (opcional)</label>
+          <div id="attach-box" class="attach-area" style="margin-top:6px">
+            <div id="attach-placeholder" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+              <span style="font-size:13px;color:var(--text-3)">PDF, JPG, PNG, DOC — máx. 10 MB</span>
+              <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0">
+                {{ icon('upload', 13) }} Selecionar arquivo
+                <input type="file" id="input-anexo" name="anexo"
+                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                       style="display:none" onchange="mostrarAnexo(this)">
+              </label>
+            </div>
+            <div id="attach-selected" style="display:none;width:100%;align-items:center;gap:10px">
+              {{ icon('paperclip', 18) }}
+              <div style="flex:1;min-width:0">
+                <div id="attach-nome" style="font-size:13.5px;font-weight:500;color:var(--text-1);
+                     white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+                <div id="attach-tamanho" style="font-size:12px;color:var(--text-3)"></div>
+              </div>
+              <button type="button" onclick="removerAnexo()" class="btn btn-danger btn-sm" style="flex-shrink:0">Remover</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const busca     = document.getElementById('busca-aluno');
+const sugestoes = document.getElementById('sugestoes');
+const alunoId   = document.getElementById('aluno_id');
+const card      = document.getElementById('card-aluno');
+let timer;
+
+busca.addEventListener('input', () => {
+  clearTimeout(timer);
+  const q = busca.value.trim();
+  if (q.length < 2) { sugestoes.style.display = 'none'; return; }
+  timer = setTimeout(() => {
+    fetch(`/alunos/busca-json?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(lista => {
+        sugestoes.innerHTML = '';
+        if (!lista.length) {
+          sugestoes.innerHTML = `<div style="padding:12px 14px;color:var(--text-3);font-size:13px">
+            Nenhum aluno encontrado. <a href="/alunos/novo" style="color:var(--green-text)">Cadastrar novo</a></div>`;
+        } else {
+          lista.forEach(a => {
+            const d = document.createElement('div');
+            d.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s';
+            d.innerHTML = `<div style="font-size:14px;font-weight:500;color:var(--text-1)">${a.nome}</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:1px">Matrícula: ${a.matricula} · ${a.serie}</div>`;
+            d.addEventListener('mouseenter', () => d.style.background = 'var(--surface-2)');
+            d.addEventListener('mouseleave', () => d.style.background = '');
+            d.addEventListener('click', () => selecionar(a));
+            sugestoes.appendChild(d);
+          });
+        }
+        sugestoes.style.display = 'block';
+      });
+  }, 220);
+});
+
+function selecionar(a) {
+  alunoId.value = a.id;
+  busca.style.display = 'none';
+  sugestoes.style.display = 'none';
+  document.getElementById('card-nome').textContent = a.nome;
+  document.getElementById('card-info').textContent = `Matrícula: ${a.matricula} · ${a.serie}`;
+  card.style.display = 'block';
+}
+
+function limparAluno() {
+  alunoId.value = '';
+  busca.value = '';
+  busca.style.display = '';
+  card.style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!busca.contains(e.target) && !sugestoes.contains(e.target))
+    sugestoes.style.display = 'none';
+});
+
+function mostrarAnexo(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (file.size > 10 * 1024 * 1024) { alert('Máximo 10 MB.'); input.value = ''; return; }
+  const kb = file.size / 1024;
+  document.getElementById('attach-nome').textContent = file.name;
+  document.getElementById('attach-tamanho').textContent = kb > 1024 ? (kb/1024).toFixed(1)+' MB' : kb.toFixed(0)+' KB';
+  document.getElementById('attach-placeholder').style.display = 'none';
+  document.getElementById('attach-selected').style.display = 'flex';
+  document.getElementById('attach-box').style.borderColor = 'var(--green)';
+  document.getElementById('attach-box').style.background = 'var(--green-soft)';
+}
+
+function removerAnexo() {
+  document.getElementById('input-anexo').value = '';
+  document.getElementById('attach-placeholder').style.display = 'flex';
+  document.getElementById('attach-selected').style.display = 'none';
+  document.getElementById('attach-box').style.borderColor = '';
+  document.getElementById('attach-box').style.background = '';
+}
+</script>
+
+{% endblock %}

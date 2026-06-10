@@ -1,0 +1,84 @@
+# Ignorar ambiente virtual Python
+venv/
+env/
+.venv
+ENV/
+env.bak/
+venv.bak/
+
+# Ignorar arquivos compilados Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Ignorar cache Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Ignorar IDE e editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Ignorar arquivos de configuração sensível
+.env
+.env.local
+config.py
+*.key
+*.pem
+
+# Ignorar banco de dados local
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignorar uploads de usuários (para não lotar o GitHub)
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+
+# Ignorar logs
+*.log
+logs/
+
+# Ignorar arquivos temporários
+*.tmp
+*.temp
+/tmp/
+
+# Ignorar arquivos do Flask
+instance/
+.webassets-cache
+
+# Ignorar arquivos de teste
+.coverage
+htmlcov/
+.tox/
+
+# Ignorar arquivos do SO
+.AppleDouble
+.LSOverride
+*.cer
+*.csr

@@ -1,0 +1,376 @@
+{% from 'icons.html' import icon %}
+{% extends "base.html" %}
+{% block title %}{% if aluno %}Editar Aluno{% else %}Novo Aluno{% endif %}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+ <div>
+ <h1>{% if aluno %}Editar dados de {{ aluno.nome }}{% else %}Cadastro de aluno{% endif %}</h1>
+ <p class="subtitle">Campos com * são obrigatórios.</p>
+ </div>
+ <div style="display:flex;gap:10px">
+ <a href="{{ url_for('alunos.listar') }}" class="btn btn-secondary">{{ icon('x', 13) }} Cancelar</a>
+ <button type="submit" form="form-aluno" class="btn btn-primary">
+ {% if aluno %}Salvar Alterações{% else %}Cadastrar Aluno{% endif %}
+ </button>
+ </div>
+</div>
+
+<form id="form-aluno" method="POST" enctype="multipart/form-data">
+<div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">
+
+ <!-- FOTO -->
+ <div style="display:flex;flex-direction:column;gap:16px">
+ <div class="panel">
+ <div class="panel-head"><h2>Foto do aluno</h2></div>
+ <div style="padding:20px;text-align:center">
+ <div id="foto-preview" style="
+ width:160px;height:160px;border-radius:50%;
+ background:#f1f5f9;border:3px dashed #cbd5e1;
+ display:flex;align-items:center;justify-content:center;
+ margin:0 auto 16px;overflow:hidden;cursor:pointer;
+ transition:border-color .2s" onclick="document.getElementById('foto-input').click()">
+ {% if aluno and aluno.foto %}
+ <img src="{{ url_for('static', filename=aluno.foto) }}"
+ style="width:100%;height:100%;object-fit:cover" id="foto-img">
+ {% else %}
+ <div id="foto-placeholder">
+ <div style="font-size:40px"></div>
+ <div style="font-size:12px;color:var(--muted);margin-top:6px">Clique para<br>adicionar foto</div>
+ </div>
+ {% endif %}
+ </div>
+ <input type="file" id="foto-input" name="foto"
+ accept=".jpg,.jpeg,.png,.webp" style="display:none"
+ onchange="previewFoto(this)">
+ <p style="font-size:12px;color:var(--muted)">JPG, PNG ou WEBP<br>Máx. 5MB</p>
+ {% if aluno and aluno.foto %}
+ <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px"
+ onclick="document.getElementById('foto-input').click()">Trocar foto</button>
+ {% endif %}
+ </div>
+ </div>
+
+ {% if aluno %}
+ <div class="panel">
+ <div class="panel-head"><h2>Resumo</h2></div>
+ <div style="padding:16px;font-size:13px;display:flex;flex-direction:column;gap:10px">
+ <div><span style="color:var(--muted)">Cadastrado em</span><br>
+ <strong>{{ aluno.criado_em.strftime('%d/%m/%Y') }}</strong></div>
+ <div><span style="color:var(--muted)">Ocorrências</span><br>
+ <strong>{{ aluno.total_ocorrencias }}</strong> total
+ {% if aluno.ocorrencias_ativas %}
+ · <span style="color:var(--amber)">{{ aluno.ocorrencias_ativas|length }} ativa(s)</span>
+ {% endif %}
+ </div>
+ {% if aluno.menor_de_idade %}
+ <div style="padding:8px;background:var(--amber-soft);border-radius:6px;color:var(--amber);font-weight:700;font-size:12px">
+ Aluno menor de idade
+ </div>
+ {% endif %}
+ </div>
+ </div>
+ {% endif %}
+ </div>
+
+ <!-- CAMPOS -->
+ <div style="display:flex;flex-direction:column;gap:16px">
+
+ <!-- Dados pessoais -->
+ <div class="panel">
+ <div class="panel-head">
+ <h2>Dados pessoais</h2>
+ <p>Informações de identificação do aluno.</p>
+ </div>
+ <div class="form-grid">
+
+ <label class="lbl wide">Nome completo *
+ <input class="field" type="text" name="nome" required maxlength="100"
+ value="{{ form.get('nome', '') }}"
+ placeholder="Nome completo do aluno">
+ </label>
+
+ <label class="lbl">Data de nascimento
+ <input class="field" type="date" name="data_nascimento"
+ value="{{ form.get('data_nascimento', '') }}"
+ max="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+ </label>
+
+ <label class="lbl">CPF
+ <input class="field" type="text" name="cpf" id="cpf"
+ value="{{ form.get('cpf', '') }}"
+ placeholder="000.000.000-00"
+ maxlength="14" oninput="mascaraCPF(this)">
+ <span class="campo-hint">11 dígitos — deixe em branco se não tiver</span>
+ </label>
+
+ <label class="lbl">E-mail
+ <input class="field" type="email" name="email" oninput="this.value=this.value.toLowerCase()" maxlength="100"
+ value="{{ form.get('email', '') }}"
+ placeholder="aluno@email.com">
+ </label>
+
+ <label class="lbl">Telefone / WhatsApp
+ <input class="field" type="text" name="telefone" id="telefone"
+ value="{{ form.get('telefone', '') }}"
+ placeholder="(48) 99999-9999"
+ maxlength="15" oninput="mascaraTel(this)">
+ <span class="campo-hint">Com DDD · 10 ou 11 dígitos</span>
+ </label>
+
+ </div>
+ </div>
+
+ <!-- Dados acadêmicos -->
+ <div class="panel">
+ <div class="panel-head">
+ <h2>Dados acadêmicos</h2>
+ <p>Matrícula, curso, semestre, turma e turno.</p>
+ </div>
+ <div class="form-grid">
+
+ <label class="lbl">Matrícula
+ <input class="field" type="text" name="matricula" maxlength="20"
+ value="{{ form.get('matricula', '') }}"
+ placeholder="Ex: 2026-T001"
+ oninput="this.value=this.value.replace(/[^a-zA-Z0-9\-]/g,'').toUpperCase()" required>
+ <span class="campo-hint">Máximo 20 caracteres</span>
+ </label>
+
+ <label class="lbl">Nível
+ <select class="sel" name="nivel" id="nivel" onchange="atualizarCursos(); atualizarSeries()" required>
+ <option value="">Selecione...</option>
+ <option value="tecnico"   {% if form.get('nivel')=='tecnico'   %}selected{% endif %}>Técnico</option>
+ <option value="graduacao" {% if form.get('nivel')=='graduacao' %}selected{% endif %}>Graduação</option>
+ <option value="pos"       {% if form.get('nivel')=='pos'       %}selected{% endif %}>Pós-graduação</option>
+ </select>
+ </label>
+
+ <label class="lbl wide">Curso
+ <select class="sel" name="curso" id="select-curso" style="margin-top:5px" required>
+ <option value="">Selecione o nível primeiro...</option>
+ </select>
+ </label>
+
+ <label class="lbl">Semestre
+ <select class="sel" name="serie" id="serie">
+ <option value="">Selecione o nível primeiro...</option>
+ </select>
+ </label>
+
+ <label class="lbl">Turma
+ <select class="sel" name="turma">
+ <option value="">Selecione...</option>
+ {% for t in ['A','B','C','D','E','F'] %}
+ <option value="{{ t }}" {% if form.get('turma')==t %}selected{% endif %}>Turma {{ t }}</option>
+ {% endfor %}
+ </select>
+ </label>
+
+ <label class="lbl">Turno
+ <select class="sel" name="turno">
+ <option value="">Selecione...</option>
+ <option value="manhã" {% if form.get('turno')=='manhã' %}selected{% endif %}>Manhã</option>
+ <option value="tarde" {% if form.get('turno')=='tarde' %}selected{% endif %}>Tarde</option>
+ <option value="noite" {% if form.get('turno')=='noite' %}selected{% endif %}>Noite</option>
+ </select>
+ </label>
+
+ </div>
+ </div>
+
+ <!-- Responsável / Contato de emergência -->
+ <div class="panel" style="margin-top:8px">
+ <div class="panel-head">
+   <h2 id="titulo-contato">Contato de emergência</h2>
+   <p>Obrigatório para alunos menores de 18 anos.</p>
+ </div>
+ <div style="padding:0 20px 4px">
+   <label class="lbl">Tipo de vínculo
+     <select class="sel" name="tipo_contato" id="tipo-contato" onchange="atualizarTipoContato()" style="margin-top:5px">
+       <option value="emergencia" {% if form.get('tipo_contato','emergencia')=='emergencia' %}selected{% endif %}>Contato de emergência</option>
+       <option value="responsavel" {% if form.get('tipo_contato')=='responsavel' %}selected{% endif %}>Responsável legal</option>
+     </select>
+   </label>
+ </div>
+ <div class="form-grid">
+
+ <label class="lbl wide"><span id="label-nome-contato">Nome do contato</span>
+ <input class="field" type="text" name="responsavel_nome" maxlength="100"
+ value="{{ form.get('responsavel_nome', '') }}"
+ placeholder="Nome completo" style="margin-top:5px">
+ </label>
+
+ <label class="lbl" id="wrap-parentesco">Parentesco / Vínculo
+ <select class="sel" name="responsavel_parentesco">
+ <option value="">Selecione...</option>
+ {% for p in ['Pai','Mãe','Avô','Avó','Tio','Tia','Responsável legal','Outro'] %}
+ <option value="{{ p }}" {% if form.get('responsavel_parentesco')==p %}selected{% endif %}>{{ p }}</option>
+ {% endfor %}
+ </select>
+ </label>
+
+ <label class="lbl">Telefone
+ <input class="field" type="text" name="responsavel_contato"
+ value="{{ form.get('responsavel_contato', '') }}"
+ placeholder="(16) 99999-9999"
+ maxlength="15" oninput="mascaraTel(this)" style="margin-top:5px">
+ <span class="campo-hint">Com DDD</span>
+ </label>
+
+ <label class="lbl wide">E-mail
+ <input class="field" type="email" name="responsavel_email" maxlength="100"
+ value="{{ form.get('responsavel_email', '') }}"
+ placeholder="contato@email.com" style="margin-top:5px">
+ </label>
+
+ </div>
+ </div>
+
+ </div><!-- /campos -->
+</div><!-- /grid -->
+</form>
+
+<style>
+.campo-hint { font-size:11px; color:var(--muted); font-weight:400; margin-top:2px; }
+</style>
+
+<script>
+// ── Máscaras ──────────────────────────────────────────
+function mascaraCPF(el) {
+ let v = el.value.replace(/\D/g, '').slice(0, 11);
+ if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+ else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+ else if (v.length > 3) v = v.replace(/^(\d{3})(\d{1,3})/, '$1.$2');
+ el.value = v;
+}
+
+function mascaraTel(el) {
+ let v = el.value.replace(/\D/g, '').slice(0, 11);
+ if (v.length === 11)
+ v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+ else if (v.length >= 10)
+ v = v.replace(/^(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+ else if (v.length > 6)
+ v = v.replace(/^(\d{2})(\d{4,5})(\d*)/, '($1) $2-$3');
+ else if (v.length > 2)
+ v = v.replace(/^(\d{2})(\d+)/, '($1) $2');
+ el.value = v;
+}
+
+// ── Dados por nível ──────────────────────────────────
+const cursosPorNivel = {
+  tecnico: [
+    'Técnico em Mecatrônica',
+    'Técnico em Eletroeletrônica',
+    'Técnico em Fabricação Mecânica',
+    'Técnico em Administração',
+  ],
+  graduacao: [
+    'Tecnologia em Mecatrônica Industrial',
+  ],
+  pos: [
+    'Pós-Graduação em Indústria Digital',
+    'Pós-Graduação em Indústria 4.0',
+    'Pós-Graduação em Automação da Manufatura',
+  ],
+};
+
+const seriesPorNivel = {
+  tecnico:   ['1º semestre','2º semestre','3º semestre','4º semestre'],
+  graduacao: ['1º semestre','2º semestre','3º semestre','4º semestre',
+              '5º semestre','6º semestre','7º semestre','8º semestre',
+              '9º semestre','10º semestre'],
+  pos:       ['1º semestre','2º semestre','3º semestre','4º semestre'],
+};
+
+const cursoAtual = "{{ form.get('curso', '') }}";
+const serieAtual = "{{ form.get('serie', '') }}";
+
+function atualizarCursos() {
+  const nivel = document.getElementById('nivel').value;
+  const sel   = document.getElementById('select-curso');
+  sel.innerHTML = '<option value="">Selecione...</option>';
+  (cursosPorNivel[nivel] || []).forEach(cu => {
+    const op = document.createElement('option');
+    op.value = cu; op.textContent = cu;
+    if (cu === cursoAtual) op.selected = true;
+    sel.appendChild(op);
+  });
+  if (!nivel) sel.innerHTML = '<option value="">Selecione o nível primeiro...</option>';
+}
+
+function atualizarSeries() {
+  const nivel = document.getElementById('nivel').value;
+  const sel   = document.getElementById('serie');
+  sel.innerHTML = '<option value="">Selecione...</option>';
+  (seriesPorNivel[nivel] || []).forEach(s => {
+    const op = document.createElement('option');
+    op.value = s; op.textContent = s;
+    if (s === serieAtual) op.selected = true;
+    sel.appendChild(op);
+  });
+  if (!nivel) sel.innerHTML = '<option value="">Selecione o nível primeiro...</option>';
+}
+
+function atualizarTurnos() { /* todos os níveis aceitam todos os turnos */ }
+
+function atualizarTipoContato() {
+  const tipo  = document.getElementById('tipo-contato').value;
+  const titulo = document.getElementById('titulo-contato');
+  const label  = document.getElementById('label-nome-contato');
+  if (tipo === 'responsavel') {
+    titulo.textContent = 'Responsável legal';
+    label.textContent  = 'Nome do responsável';
+  } else {
+    titulo.textContent = 'Contato de emergência';
+    label.textContent  = 'Nome do contato';
+  }
+}
+
+function atualizarTipoContato() {
+  const tipo = document.getElementById('tipo-contato').value;
+  const titulo = document.getElementById('titulo-contato');
+  const labelNome = document.getElementById('label-nome-contato');
+  if (tipo === 'responsavel') {
+    titulo.textContent = 'Responsável legal';
+    if (labelNome) labelNome.textContent = 'Nome do responsável';
+  } else {
+    titulo.textContent = 'Contato de emergência';
+    if (labelNome) labelNome.textContent = 'Nome do contato';
+  }
+}
+
+document.getElementById('nivel').addEventListener('change', () => {
+  atualizarCursos();
+  atualizarSeries();
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('nivel').value) {
+    atualizarCursos();
+    atualizarSeries();
+  }
+  atualizarTipoContato();
+});
+
+// ── Preview de foto ───────────────────────────────────
+function previewFoto(input) {
+ if (!input.files || !input.files[0]) return;
+ const file = input.files[0];
+ if (file.size > 5 * 1024 * 1024) {
+ alert('A foto deve ter no máximo 5MB.');
+ input.value = '';
+ return;
+ }
+ const reader = new FileReader();
+ reader.onload = e => {
+ const div = document.getElementById('foto-preview');
+ div.innerHTML = `<img src="${e.target.result}"
+ style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+ };
+ reader.readAsDataURL(file);
+}
+</script>
+
+{% endblock %}
