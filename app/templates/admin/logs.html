@@ -114,6 +114,7 @@
  {% if log.acao == 'criou_usuario' %}<span class="pill pill-open">Criou usuário</span>
  {% elif log.acao == 'editou_usuario' %}<span class="pill pill-andamento">Editou usuário</span>
  {% elif log.acao == 'desativou_usuario' %}<span class="pill pill-done">Desativou usuário</span>
+ {% elif log.acao == 'reativou_usuario' %}<span class="pill pill-open">Reativou usuário</span>
  {% else %}<span class="pill pill-closed">{{ log.acao }}</span>{% endif %}
  </td>
  <td style="font-size:13px;font-weight:500">{{ log.alvo_nome or '—' }}</td>

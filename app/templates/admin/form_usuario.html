@@ -1,6 +1,28 @@
 {% from 'icons.html' import icon %}
 {% extends "base.html" %}
-{% block title %}{% if usuario %}Editar usuário{% else %}Novo usuário{% endif %}{% endblock %}
+{% block title %}{% if usuario %}Editar usuário{% else %}Novo usuário{% endif %}
+<script>
+(function() {
+  function addCapsWarn(input) {
+    var warn = document.createElement('span');
+    warn.textContent = '⚠ Caps Lock ativado';
+    warn.style.cssText = 'display:none;font-size:11px;color:#b45309;margin-top:2px;font-weight:500';
+    input.parentNode.insertBefore(warn, input.nextSibling);
+    function check(e) {
+      var caps = e.getModifierState && e.getModifierState('CapsLock');
+      warn.style.display = caps ? 'block' : 'none';
+    }
+    input.addEventListener('keyup', check);
+    input.addEventListener('keydown', check);
+    input.addEventListener('focus', check);
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[type="password"]').forEach(addCapsWarn);
+  });
+})();
+</script>
+
+{% endblock %}
 {% block content %}
 
 <div class="page-head">
@@ -37,7 +59,7 @@
       <label class="lbl wide">E-mail institucional
         <input class="field" type="email" name="email" required
                value="{{ usuario.email if usuario else '' }}"
-               placeholder="usuario@sirae.com" style="margin-top:5px">
+               placeholder="usuario@sirae.com.br" style="margin-top:5px">
       </label>
 
       <label class="lbl">Perfil de acesso
@@ -76,9 +98,8 @@
       <label class="lbl">Telefone
         <input class="field" type="text" name="telefone" maxlength="15" style="margin-top:5px"
                value="{{ usuario.telefone if usuario and usuario.telefone else '' }}"
-               placeholder="(44) 99999-9999"
+               placeholder="(16) 99999-9999"
                oninput="mascaraTel(this)">
-        <span class="campo-hint">Com DDD</span>
       </label>
 
       <label class="lbl">Ramal

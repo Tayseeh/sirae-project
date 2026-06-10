@@ -99,5 +99,28 @@
   </div>
 </div>
 
+
+<script>
+(function() {
+  function addCapsWarn(input) {
+    var warn = document.createElement('span');
+    warn.className = 'caps-warn';
+    warn.textContent = '⚠ Caps Lock ativado';
+    warn.style.cssText = 'display:none;font-size:11px;color:#b45309;margin-top:2px;font-weight:500';
+    input.parentNode.insertBefore(warn, input.nextSibling);
+    function check(e) {
+      var caps = e.getModifierState && e.getModifierState('CapsLock');
+      warn.style.display = caps ? 'block' : 'none';
+    }
+    input.addEventListener('keyup', check);
+    input.addEventListener('keydown', check);
+    input.addEventListener('focus', check);
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[type="password"]').forEach(addCapsWarn);
+  });
+})();
+</script>
+
 </body>
 </html>

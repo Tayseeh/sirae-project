@@ -113,9 +113,8 @@
  <label class="lbl">Telefone / WhatsApp
  <input class="field" type="text" name="telefone" id="telefone"
  value="{{ form.get('telefone', '') }}"
- placeholder="(48) 99999-9999"
+ placeholder="(16) 99999-9999"
  maxlength="15" oninput="mascaraTel(this)">
- <span class="campo-hint">Com DDD · 10 ou 11 dígitos</span>
  </label>
 
  </div>
@@ -129,7 +128,7 @@
  </div>
  <div class="form-grid">
 
- <label class="lbl">Matrícula
+ <label class="lbl">Matrícula *
  <input class="field" type="text" name="matricula" maxlength="20"
  value="{{ form.get('matricula', '') }}"
  placeholder="Ex: 2026-T001"
@@ -185,7 +184,7 @@
    <h2 id="titulo-contato">Contato de emergência</h2>
    <p>Obrigatório para alunos menores de 18 anos.</p>
  </div>
- <div style="padding:0 20px 4px">
+ <div style="padding:16px 20px 4px">
    <label class="lbl">Tipo de vínculo
      <select class="sel" name="tipo_contato" id="tipo-contato" onchange="atualizarTipoContato()" style="margin-top:5px">
        <option value="emergencia" {% if form.get('tipo_contato','emergencia')=='emergencia' %}selected{% endif %}>Contato de emergência</option>
@@ -215,7 +214,7 @@
  value="{{ form.get('responsavel_contato', '') }}"
  placeholder="(16) 99999-9999"
  maxlength="15" oninput="mascaraTel(this)" style="margin-top:5px">
- <span class="campo-hint">Com DDD</span>
+ 
  </label>
 
  <label class="lbl wide">E-mail
