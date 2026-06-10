@@ -105,7 +105,7 @@
  </label>
 
  <label class="lbl">E-mail
- <input class="field" type="email" name="email" maxlength="100"
+ <input class="field" type="email" name="email" oninput="this.value=this.value.toLowerCase()" maxlength="100"
  value="{{ form.get('email', '') }}"
  placeholder="aluno@email.com">
  </label>
@@ -133,12 +133,12 @@
  <input class="field" type="text" name="matricula" maxlength="20"
  value="{{ form.get('matricula', '') }}"
  placeholder="Ex: 2026-T001"
- oninput="this.value=this.value.replace(/[^a-zA-Z0-9\-]/g,'')">
+ oninput="this.value=this.value.replace(/[^a-zA-Z0-9\-]/g,'').toUpperCase()" required>
  <span class="campo-hint">Máximo 20 caracteres</span>
  </label>
 
  <label class="lbl">Nível
- <select class="sel" name="nivel" id="nivel" onchange="atualizarCursos(); atualizarSeries()">
+ <select class="sel" name="nivel" id="nivel" onchange="atualizarCursos(); atualizarSeries()" required>
  <option value="">Selecione...</option>
  <option value="tecnico"   {% if form.get('nivel')=='tecnico'   %}selected{% endif %}>Técnico</option>
  <option value="graduacao" {% if form.get('nivel')=='graduacao' %}selected{% endif %}>Graduação</option>
@@ -147,7 +147,7 @@
  </label>
 
  <label class="lbl wide">Curso
- <select class="sel" name="curso" id="select-curso" style="margin-top:5px">
+ <select class="sel" name="curso" id="select-curso" style="margin-top:5px" required>
  <option value="">Selecione o nível primeiro...</option>
  </select>
  </label>
@@ -180,10 +180,10 @@
  </div>
 
  <!-- Responsável / Contato de emergência -->
- <div class="panel">
+ <div class="panel" style="margin-top:8px">
  <div class="panel-head">
    <h2 id="titulo-contato">Contato de emergência</h2>
-   <p>Obrigatório para menores de 18 anos. Opcional para demais.</p>
+   <p>Obrigatório para alunos menores de 18 anos.</p>
  </div>
  <div style="padding:0 20px 4px">
    <label class="lbl">Tipo de vínculo

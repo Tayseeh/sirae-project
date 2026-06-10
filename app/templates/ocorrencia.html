@@ -37,6 +37,14 @@
     <div style="padding:16px 20px;border-right:1px solid var(--border)">
       <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Descrição original</div>
       <p style="font-size:14px;line-height:1.6;color:var(--text-2)">{{ ocorrencia.descricao }}</p>
+      {% if ocorrencia.anexo_arquivo %}
+      <div style="margin-top:10px;display:flex;align-items:center;gap:7px">
+        {{ icon('paperclip', 14) }}
+        <span style="font-size:12.5px;color:var(--text-3)">{{ ocorrencia.anexo_arquivo.split('_', 2)[-1] }}</span>
+        <a href="{{ url_for('main.ver_anexo', filename=ocorrencia.anexo_arquivo) }}"
+           target="_blank" style="font-size:12px;color:var(--green-text);text-decoration:none">Abrir ↗</a>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Criada por + Responsável -->
@@ -92,8 +100,8 @@
     </div>
     <div class="audit-list">
       {% for log in ocorrencia.logs|sort(attribute='data_hora', reverse=true) %}
-      {% set pode_ver = not log.sigiloso or current_user.perfil in ['coordenacao', 'admin'] %}
-      <div class="audit-entry" {% if log.sigiloso %}style="background:var(--amber-soft);border-left:3px solid var(--amber-border);padding-left:8px;border-radius:4px"{% endif %}>
+      {% if not log.sigiloso or current_user.perfil in ['coordenacao', 'admin'] %}
+      <div class="audit-entry" {% if log.sigiloso %} style="background:var(--amber-soft);border-left:3px solid var(--amber-border);padding-left:8px;border-radius:4px" {% endif %}>
         <span class="audit-dot
           {% if log.acao == 'criada' %}green
           {% elif log.acao == 'encaminhada' %}blue
@@ -110,16 +118,18 @@
             {% elif log.acao == 'encerrada' %}Encerrada
             {% else %}{{ log.acao|capitalize }}{% endif %}
             <span style="font-weight:400;color:var(--text-3);font-size:12px"> · {{ log.usuario.nome }}</span>
-            {% if log.sigiloso %}<span style="font-size:10px;color:var(--amber-text);font-weight:600;margin-left:4px">{{ icon('lock', 11) }} Sigiloso</span>{% endif %}
           </strong>
-          {% if pode_ver %}
           {% if log.descricao_acao %}
           {% set texto = log.descricao_acao
             | replace('Andamento registrado por ' ~ log.usuario.nome ~ ': ', '')
-            | replace('. Motivo: ', '\nMotivo: ')
-            | replace('. Alterações: ', '\nAlterações: ')
-            | replace('. Resolução: ', '\nResolução: ')
-            | replace(' | ', '\n→ ') %}
+            | replace('. Motivo: ', '
+Motivo: ')
+            | replace('. Alterações: ', '
+Alterações: ')
+            | replace('. Resolução: ', '
+Resolução: ')
+            | replace(' | ', '
+→ ') %}
           {% if log.acao == 'atualizada' and 'Andamento registrado' in (log.descricao_acao or '') %}
             <div style="margin-top:5px">
               <span style="font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Trâmite</span>
@@ -136,19 +146,7 @@
             <p style="margin-top:3px;font-size:12.5px;white-space:pre-line">{{ texto }}</p>
           {% endif %}
           {% endif %}
-          {% endif %}
-          {% if log.acao == 'criada' and ocorrencia.anexo_arquivo and pode_ver %}
-          <div style="margin-top:6px">
-            <a href="{{ url_for('main.ver_anexo', filename=ocorrencia.anexo_arquivo) }}" target="_blank"
-               style="display:inline-flex;align-items:center;gap:5px;font-size:12px;
-                      color:var(--green-text);text-decoration:none;
-                      background:var(--green-soft);padding:3px 8px;border-radius:4px;
-                      border:1px solid var(--green-border)">
-              {{ icon('paperclip', 12) }} {{ ocorrencia.anexo_arquivo.split('_', 2)[-1] }}
-            </a>
-          </div>
-          {% endif %}
-          {% if log.anexo_log and pode_ver %}
+          {% if log.anexo_log %}
           <div style="margin-top:6px">
             <a href="{{ url_for('main.ver_anexo', filename=log.anexo_log) }}" target="_blank"
                style="display:inline-flex;align-items:center;gap:5px;font-size:12px;
@@ -159,16 +157,15 @@
             </a>
           </div>
           {% endif %}
-          {% if not pode_ver %}
-          <p style="margin-top:4px;font-size:12px;color:var(--amber-text);font-style:italic">
-            Conteúdo visível apenas para a coordenação.
-          </p>
-          {% endif %}
           <p style="font-size:11px;margin-top:4px;color:var(--text-3)">
             {{ log.data_hora.strftime('%d/%m/%Y às %H:%M') }}
+            {% if log.sigiloso %}<span style="font-size:10px;color:var(--amber-text);font-weight:600"> · Sigiloso</span>{% endif %}
           </p>
         </div>
       </div>
+      {% endif %}
+      {% else %}
+      <p style="padding:20px;color:var(--text-3);font-size:13px">Sem histórico registrado.</p>
       {% endfor %}
     </div>
   </div>

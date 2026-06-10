@@ -1,0 +1,15 @@
+[33m367bf35[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Atualização do README
+[33me44ff6f[m Merge branch 'main' of https://github.com/Tayseeh/sirae-project
+[33m849699f[m versao final
+[33m3a121ac[m Update README.md
+[33m7b38765[m Merge branch 'main' of https://github.com/Tayseeh/sirae-project
+[33m0f0ef09[m Resolve conflitos
+[33m39202e7[m Merge branch 'main' of https://github.com/Tayseeh/sirae-project
+[33md401b0b[m atualiza README.md
+[33mb307416[m Update README.md
+[33mfa01266[m Delete app/seed.py
+[33m30c3c35[m Delete criar_usuario.py
+[33m8a81932[m Delete gitignore.txt
+[33m0ddff5d[m remoção de arquivos sem uso
+[33m1546363[m chore: remover seed.py obsoleto de app/
+[33m70d1a5d[m chore: criar .gitignore apropriado para Flask + Python

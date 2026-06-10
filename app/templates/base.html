@@ -13,26 +13,24 @@
 
   <header class="topbar">
     <a href="/" class="brand">
-      <!-- Marca SIRAE -->
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:34px;height:34px;background:var(--green);border-radius:7px;
-                    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-                    color:white;font-size:18px;font-weight:700;letter-spacing:-.5px">
-          S
-        </div>
-        <div>
-          <div style="display:flex;align-items:baseline;gap:6px">
-            <span style="font-size:16px;font-weight:700;color:var(--text-1);letter-spacing:-.3px">SIRAE</span>
-            <span style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase">SENAI</span>
-          </div>
-          <div style="font-size:11px;color:var(--text-3);font-weight:400;margin-top:-1px">
-            Registro e Acompanhamento Estudantil
-          </div>
+      <div style="display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:2px;line-height:1">SIRAE</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.7);letter-spacing:.14em;text-transform:uppercase;margin-top:3px">
+          Registro e Acompanhamento Estudantil · SENAI
         </div>
       </div>
     </a>
     {% if current_user.is_authenticated %}
-    <a href="{{ url_for('auth.perfil') }}" class="userbar" style="text-decoration:none;cursor:pointer" title="Meu perfil">
+    <a href="{{ url_for('auth.perfil') }}" class="userbar" style="text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:10px" title="Meu perfil">
+      <div style="line-height:1.3;text-align:right">
+        <div style="font-size:13.5px;font-weight:600;color:#fff">{{ current_user.nome }}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.04em">
+          {% if current_user.perfil == 'admin' %}Administrador
+          {% elif current_user.perfil == 'coordenacao' %}Coordenação
+          {% elif current_user.perfil == 'pedagogia' %}Pedagogo
+          {% else %}Atendente{% endif %}
+        </div>
+      </div>
       <div class="avatar" style="overflow:hidden">
         {% if current_user.foto %}
           <img src="{{ url_for('static', filename=current_user.foto) }}"
@@ -40,15 +38,6 @@
         {% else %}
           {{ current_user.nome[0]|upper }}
         {% endif %}
-      </div>
-      <div style="line-height:1.25">
-        <div style="font-size:13.5px;font-weight:500;color:var(--text-1)">{{ current_user.nome }}</div>
-        <div style="font-size:11.5px;color:var(--text-3)">
-          {% if current_user.perfil == 'admin' %}Administrador
-          {% elif current_user.perfil == 'coordenacao' %}Coordenação
-          {% elif current_user.perfil == 'pedagogia' %}Pedagogo
-          {% else %}Atendente{% endif %}
-        </div>
       </div>
     </a>
     {% endif %}

@@ -71,9 +71,19 @@ def extrair_form(form):
             responsavel_cpf = formatar_cpf(resp_cpf_raw)
 
     # Matrícula — máx 20 chars alfanuméricos
-    matricula = form.get('matricula', '').strip() or None
-    if matricula and len(matricula) > 20:
+    matricula = (form.get('matricula', '').strip().upper()) or None
+    if not matricula:
+        erros.append('A matrícula é obrigatória.')
+    elif len(matricula) > 20:
         erros.append('Matrícula deve ter no máximo 20 caracteres.')
+
+    nivel = form.get('nivel', '').strip() or None
+    if not nivel:
+        erros.append('O nível de ensino é obrigatório.')
+
+    curso = form.get('curso', '').strip() or None
+    if not curso:
+        erros.append('O curso é obrigatório.')
 
     # Data de nascimento
     dn_str = form.get('data_nascimento', '').strip()
@@ -91,7 +101,7 @@ def extrair_form(form):
         email=form.get('email', '').strip() or None,
         data_nascimento=data_nascimento,
         matricula=matricula,
-        nivel=form.get('nivel', '').strip() or None,
+        nivel=nivel,
         serie=form.get('serie', '').strip() or None,
         turma=form.get('turma', '').strip() or None,
         turno=form.get('turno', '').strip() or None,
