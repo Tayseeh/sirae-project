@@ -6,6 +6,8 @@ from datetime import datetime
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
+login_manager.login_message = 'Faça login para acessar esta página.'
+login_manager.login_message_category = 'warning'
 
 
 def create_app():

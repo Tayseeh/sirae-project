@@ -1,3 +1,13 @@
+import os
+
+# Carrega variáveis de ambiente do arquivo .env (desenvolvimento local).
+# Em produção, defina as variáveis diretamente no ambiente do servidor.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv não instalado — use variáveis de ambiente do sistema
+
 from app import create_app, db
 from app.models.usuario import Usuario
 from app.models.aluno import Aluno

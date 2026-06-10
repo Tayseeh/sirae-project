@@ -2,6 +2,7 @@ import os
 import time
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, send_from_directory
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 from app.models.ocorrencia import Ocorrencia, LogAuditoria
 from app.models.aluno import Aluno
 from app.models.usuario import Usuario
@@ -9,6 +10,9 @@ from app.utils import nao_admin, apenas_coordenador
 from app import db
 
 main_bp = Blueprint('main', __name__)
+
+UPLOAD_EXTS = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}
+MAX_UPLOAD_MB = 5
 
 
 def _log(ocorrencia_id, acao, descricao, sigiloso=False, anexo_log=None):
@@ -28,11 +32,20 @@ def _salvar_anexo_log(usuario_id):
     if not arquivo or not arquivo.filename:
         return None
     ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-    if ext not in {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}:
+    if ext not in UPLOAD_EXTS:
+        flash('Formato de anexo não permitido. Use PDF, JPG, PNG, DOC ou DOCX.', 'warning')
+        return None
+    # Verificação de tamanho (lê em memória para checar antes de salvar)
+    arquivo.seek(0, 2)
+    tamanho = arquivo.tell()
+    arquivo.seek(0)
+    if tamanho > MAX_UPLOAD_MB * 1024 * 1024:
+        flash(f'O anexo deve ter no máximo {MAX_UPLOAD_MB}MB.', 'warning')
         return None
     pasta = os.path.join(current_app.root_path, 'static', 'uploads')
     os.makedirs(pasta, exist_ok=True)
-    nome = f"{usuario_id}_{int(time.time())}_{arquivo.filename}"
+    nome_seguro = secure_filename(arquivo.filename)
+    nome = f"{usuario_id}_{int(time.time())}_{nome_seguro}"
     arquivo.save(os.path.join(pasta, nome))
     return nome
 
@@ -122,7 +135,7 @@ def nova_ocorrencia():
             flash('Preencha todos os campos obrigatórios.', 'danger')
             return render_template('cadastro.html')
 
-        aluno = Aluno.query.get(aluno_id)
+        aluno = db.session.get(Aluno, aluno_id)
         if not aluno:
             flash('Aluno não encontrado.', 'danger')
             return render_template('cadastro.html')
@@ -132,12 +145,19 @@ def nova_ocorrencia():
         nome_arquivo = None
         if arquivo and arquivo.filename:
             ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-            if ext not in {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}:
+            if ext not in UPLOAD_EXTS:
                 flash('Formato de arquivo não permitido.', 'danger')
+                return render_template('cadastro.html')
+            arquivo.seek(0, 2)
+            tamanho = arquivo.tell()
+            arquivo.seek(0)
+            if tamanho > MAX_UPLOAD_MB * 1024 * 1024:
+                flash(f'O arquivo deve ter no máximo {MAX_UPLOAD_MB}MB.', 'danger')
                 return render_template('cadastro.html')
             pasta = os.path.join(current_app.root_path, 'static', 'uploads')
             os.makedirs(pasta, exist_ok=True)
-            nome_arquivo = f"{current_user.id}_{int(time.time())}_{arquivo.filename}"
+            nome_seguro = secure_filename(arquivo.filename)
+            nome_arquivo = f"{current_user.id}_{int(time.time())}_{nome_seguro}"
             arquivo.save(os.path.join(pasta, nome_arquivo))
 
         nova = Ocorrencia(
@@ -200,7 +220,7 @@ def encaminhar_ocorrencia(id):
         flash('Selecione para quem encaminhar.', 'danger')
         return redirect(url_for('main.ver_ocorrencia', id=id))
 
-    novo_resp = Usuario.query.get(novo_resp_id)
+    novo_resp = db.session.get(Usuario, novo_resp_id)
     if not novo_resp:
         flash('Usuário não encontrado.', 'danger')
         return redirect(url_for('main.ver_ocorrencia', id=id))
@@ -303,10 +323,17 @@ def editar_ocorrencia(id):
         arquivo = request.files.get('anexo')
         if arquivo and arquivo.filename:
             ext = arquivo.filename.rsplit('.', 1)[-1].lower()
-            if ext in {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}:
+            if ext in UPLOAD_EXTS:
+                arquivo.seek(0, 2)
+                tamanho = arquivo.tell()
+                arquivo.seek(0)
+                if tamanho > MAX_UPLOAD_MB * 1024 * 1024:
+                    flash(f'O arquivo deve ter no máximo {MAX_UPLOAD_MB}MB.', 'danger')
+                    return redirect(url_for('main.ver_ocorrencia', id=id))
                 pasta = os.path.join(current_app.root_path, 'static', 'uploads')
                 os.makedirs(pasta, exist_ok=True)
-                nome_arquivo = f"{current_user.id}_{int(time.time())}_{arquivo.filename}"
+                nome_seguro = secure_filename(arquivo.filename)
+                nome_arquivo = f"{current_user.id}_{int(time.time())}_{nome_seguro}"
                 arquivo.save(os.path.join(pasta, nome_arquivo))
                 ocorrencia.anexo_arquivo = nome_arquivo
                 mudancas.append('Anexo atualizado')
@@ -369,6 +396,20 @@ def encerrar_ocorrencia(id):
 
 
 
+
+
+
+
+
+@main_bp.route('/anexo/<path:filename>')
+@login_required
+@nao_admin
+def ver_anexo(filename):
+    """Serve arquivos de anexo das ocorrências"""
+    pasta = os.path.join(current_app.root_path, 'static', 'uploads')
+    return send_from_directory(pasta, filename)
+
+
 @main_bp.route('/relatorios/exportar')
 @login_required
 @apenas_coordenador
@@ -379,29 +420,23 @@ def exportar_relatorio():
     filtro_tipo = request.args.get('tipo', '').strip()
     tipo_filter = (Ocorrencia.tipo == filtro_tipo,) if filtro_tipo else ()
 
-    ocorrencias_filtradas = Ocorrencia.query.filter(*tipo_filter)\
-        .order_by(Ocorrencia.data_criacao.desc()).all() if filtro_tipo else []
+    ocorrencias_filtradas = Ocorrencia.query.filter(*tipo_filter)        .order_by(Ocorrencia.data_criacao.desc()).all() if filtro_tipo else []
 
-    # Por tipo — sempre geral
     por_tipo_geral = db.session.query(
         Ocorrencia.tipo, func.count(Ocorrencia.id)
     ).group_by(Ocorrencia.tipo).order_by(func.count(Ocorrencia.id).desc()).all()
 
-    # Demais — filtrados
     por_status = db.session.query(
         Ocorrencia.status, func.count(Ocorrencia.id)
     ).filter(*tipo_filter).group_by(Ocorrencia.status).all()
 
     por_atendente = db.session.query(
         Usuario.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia, Ocorrencia.responsavel_id == Usuario.id)\
-     .filter(*tipo_filter).group_by(Usuario.id, Usuario.nome).all()
+    ).join(Ocorrencia, Ocorrencia.responsavel_id == Usuario.id)     .filter(*tipo_filter).group_by(Usuario.id, Usuario.nome).all()
 
     por_aluno = db.session.query(
         Aluno.nome, func.count(Ocorrencia.id)
-    ).join(Ocorrencia).filter(*tipo_filter)\
-     .group_by(Aluno.id, Aluno.nome)\
-     .order_by(func.count(Ocorrencia.id).desc()).limit(10).all()
+    ).join(Ocorrencia).filter(*tipo_filter)     .group_by(Aluno.id, Aluno.nome)     .order_by(func.count(Ocorrencia.id).desc()).limit(10).all()
 
     total      = Ocorrencia.query.filter(*tipo_filter).count()
     encerradas = Ocorrencia.query.filter(Ocorrencia.status == 'encerrada', *tipo_filter).count()
@@ -416,15 +451,6 @@ def exportar_relatorio():
         gerado_em=datetime.now().strftime('%d/%m/%Y às %H:%M'))
 
 
-@main_bp.route('/anexo/<path:filename>')
-@login_required
-@nao_admin
-def ver_anexo(filename):
-    """Serve arquivos de anexo das ocorrências"""
-    pasta = os.path.join(current_app.root_path, 'static', 'uploads')
-    return send_from_directory(pasta, filename)
-
-
 @main_bp.route('/relatorios')
 @login_required
 @apenas_coordenador
@@ -435,10 +461,11 @@ def relatorios():
     filtro_tipo = request.args.get('tipo', '').strip()
     tipo_filter = (Ocorrencia.tipo == filtro_tipo,) if filtro_tipo else ()
 
+    # Ocorrências filtradas para listagem
     ocorrencias_filtradas = Ocorrencia.query.filter(*tipo_filter)\
         .order_by(Ocorrencia.data_criacao.desc()).all() if filtro_tipo else []
 
-    # Gráfico de tipos — sempre geral, para mostrar todos com destaque
+    # Tipos — sempre geral para o gráfico de barras
     por_tipo_geral = db.session.query(
         Ocorrencia.tipo, func.count(Ocorrencia.id)
     ).group_by(Ocorrencia.tipo).order_by(func.count(Ocorrencia.id).desc()).all()

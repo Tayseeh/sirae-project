@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Ocorrencia(db.Model):
@@ -11,7 +11,7 @@ class Ocorrencia(db.Model):
     descricao = db.Column(db.Text, nullable=False)
     anexo_arquivo = db.Column(db.String(200), nullable=True)
 
-    # status: aberta | em_acompanhamento | encerrada
+    # status: aberta | em_andamento | encerrada
     status = db.Column(db.String(20), default='aberta')
 
     # Quem criou (nunca muda)
@@ -20,7 +20,7 @@ class Ocorrencia(db.Model):
     # Quem está responsável no momento (muda a cada encaminhamento)
     responsavel_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
 
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_criacao = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     data_encerramento = db.Column(db.DateTime, nullable=True)
 
     # Relacionamentos
@@ -31,7 +31,7 @@ class Ocorrencia(db.Model):
 
     def encerrar(self):
         self.status = 'encerrada'
-        self.data_encerramento = datetime.utcnow()
+        self.data_encerramento = datetime.now(timezone.utc)
 
     def __repr__(self):
         return f'<Ocorrencia {self.id}>'
@@ -47,7 +47,7 @@ class LogAuditoria(db.Model):
     descricao_acao = db.Column(db.Text, nullable=True)
     sigiloso       = db.Column(db.Boolean, default=False)  # visível só para coordenação
     anexo_log      = db.Column(db.String(200), nullable=True)  # anexo específico deste log
-    data_hora = db.Column(db.DateTime, default=datetime.utcnow)
+    data_hora = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     usuario = db.relationship('Usuario', backref='logs')
 

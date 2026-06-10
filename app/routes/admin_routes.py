@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, abort
 from flask_login import login_required, current_user
 from app.models.usuario import Usuario
 from app.models.ocorrencia import LogAuditoria
@@ -72,7 +72,7 @@ def novo_usuario():
 @login_required
 @apenas_admin
 def editar_usuario(id):
-    u = Usuario.query.get_or_404(id)
+    u = db.session.get(Usuario, id) or abort(404)
 
     if u.id == current_user.id:
         flash('Use as configurações de perfil para editar seus próprios dados.', 'warning')
@@ -109,7 +109,7 @@ def editar_usuario(id):
 @login_required
 @apenas_admin
 def desativar_usuario(id):
-    u = Usuario.query.get_or_404(id)
+    u = db.session.get(Usuario, id) or abort(404)
     if u.perfil == 'admin':
         flash('Não é possível desativar um administrador.', 'warning')
     else:
@@ -125,7 +125,7 @@ def desativar_usuario(id):
 @login_required
 @apenas_admin
 def reativar_usuario(id):
-    u = Usuario.query.get_or_404(id)
+    u = db.session.get(Usuario, id) or abort(404)
     u.ativo = True
     _log_admin('reativou_usuario', u.nome,
                f'Usuário "{u.nome}" ({u.perfil}) reativado por {current_user.nome}.')
@@ -138,16 +138,18 @@ def reativar_usuario(id):
 @login_required
 @apenas_admin
 def excluir_usuario(id):
-    u = Usuario.query.get_or_404(id)
+    u = db.session.get(Usuario, id) or abort(404)
     if u.id == current_user.id:
-        flash('Você não pode excluir sua própria conta.', 'danger')
+        flash('Você não pode desativar sua própria conta.', 'danger')
         return redirect(url_for('admin.usuarios'))
+    # Hard-delete is unsafe: users may have associated ocorrencias/logs (FK constraint).
+    # We permanently deactivate instead to preserve data integrity.
     nome = u.nome
-    _log_admin('excluiu_usuario', nome,
-               f'Usuário "{nome}" ({u.perfil}) excluído permanentemente por {current_user.nome}.')
-    db.session.delete(u)
+    u.ativo = False
+    _log_admin('desativou_usuario', nome,
+               f'Usuário "{nome}" ({u.perfil}) desativado permanentemente por {current_user.nome}.')
     db.session.commit()
-    flash(f'Usuário {nome} excluído permanentemente.', 'success')
+    flash(f'Usuário {nome} desativado permanentemente.', 'success')
     return redirect(url_for('admin.usuarios'))
 
 
