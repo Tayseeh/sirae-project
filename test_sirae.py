@@ -37,7 +37,7 @@ class ConfigTeste:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = False
-    PERMANENT_SESSION_LIFETIME = __import__('datetime').timedelta(hours=2)
+    PERMANENT_SESSION_LIFETIME = __import__('datetime').timedelta(hours=1)
     SESSION_PERMANENT = True
 
 
