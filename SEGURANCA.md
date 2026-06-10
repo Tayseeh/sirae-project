@@ -20,7 +20,7 @@ def check_password(self, password):
 ```
 
 ### Sessões
-- Sessões gerenciadas pelo Flask-Login com timeout de **2 horas** de inatividade
+- Sessões gerenciadas pelo Flask-Login com timeout de **1 horas** de inatividade
 - Sessões são permanentes para evitar logout ao fechar o navegador acidentalmente
 - Logout invalida a sessão imediatamente
 
