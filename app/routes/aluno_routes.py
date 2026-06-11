@@ -1,10 +1,11 @@
+import re
 import os
 import time
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app
 from flask_login import login_required, current_user
 from app.models.aluno import Aluno, formatar_cpf, formatar_telefone, limpar_numeros
 from app import db
-from datetime import datetime
+from datetime import datetime, date
 
 aluno_bp = Blueprint('alunos', __name__, url_prefix='/alunos')
 
@@ -30,6 +31,8 @@ def extrair_form(form):
     nome = form.get('nome', '').strip()
     if not nome:
         erros.append('O nome é obrigatório.')
+    elif not re.match(r"^[a-zA-ZÀ-ÿ\s'\-]+$", nome):
+        erros.append('Nome deve conter apenas letras e espaços.')
 
     # CPF — valida apenas se preenchido
     cpf_raw = form.get('cpf', '').strip()
@@ -80,17 +83,50 @@ def extrair_form(form):
     nivel = form.get('nivel', '').strip() or None
     if not nivel:
         erros.append('O nível de ensino é obrigatório.')
+    elif nivel not in ('aprendizagem', 'tecnico', 'graduacao', 'pos', 'livre'):
+        erros.append('Nível de ensino inválido.')
 
     curso = form.get('curso', '').strip() or None
     if not curso:
         erros.append('O curso é obrigatório.')
 
-    # Data de nascimento
+    # Data de nascimento — obrigatória
     dn_str = form.get('data_nascimento', '').strip()
     data_nascimento = None
-    if dn_str:
+    if not dn_str:
+        erros.append('A data de nascimento é obrigatória.')
+    else:
         try:
             data_nascimento = datetime.strptime(dn_str, '%Y-%m-%d').date()
+            hoje = date.today()
+            idade = hoje.year - data_nascimento.year - (
+                (hoje.month, hoje.day) < (data_nascimento.month, data_nascimento.day)
+            )
+            if idade > 100:
+                erros.append('Data de nascimento inválida — verifique o ano informado.')
+            elif idade < 14:
+                erros.append('A idade mínima para cadastro é 14 anos.')
+            elif idade < 18:
+                # Menor — responsável legal obrigatório completo
+                if not form.get('responsavel_nome', '').strip():
+                    erros.append('Nome do responsável é obrigatório para alunos menores de 18 anos.')
+                if not form.get('responsavel_contato', '').strip():
+                    erros.append('Telefone do responsável é obrigatório para alunos menores de 18 anos.')
+                if not form.get('responsavel_cpf', '').strip():
+                    erros.append('CPF do responsável é obrigatório para alunos menores de 18 anos.')
+                if not form.get('responsavel_parentesco', '').strip():
+                    erros.append('Parentesco é obrigatório para alunos menores de 18 anos.')
+            else:
+                # Maior — CPF, telefone + contato de emergência obrigatórios
+                cpf_raw = limpar_numeros(form.get('cpf', ''))
+                if not cpf_raw:
+                    erros.append('CPF é obrigatório para alunos maiores de 18 anos.')
+                if not tel_raw:
+                    erros.append('Telefone/WhatsApp é obrigatório para alunos maiores de 18 anos.')
+                if not form.get('responsavel_nome', '').strip():
+                    erros.append('Nome do contato de emergência é obrigatório.')
+                if not form.get('responsavel_contato', '').strip():
+                    erros.append('Telefone do contato de emergência é obrigatório.')
         except ValueError:
             erros.append('Data de nascimento inválida.')
 

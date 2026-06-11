@@ -2,7 +2,9 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.usuario import Usuario
 from app import db
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+BRASILIA = timezone(timedelta(hours=-3))
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -16,7 +18,7 @@ def login():
 
         if user and user.ativo and user.check_password(password):
             login_user(user)
-            user.ultimo_login = datetime.now(timezone.utc)
+            user.ultimo_login = datetime.now(BRASILIA)
             db.session.commit()
             return redirect(url_for('main.dashboard'))
         flash('E-mail ou senha inválidos.', 'danger')

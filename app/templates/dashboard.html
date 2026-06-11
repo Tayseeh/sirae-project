@@ -3,48 +3,45 @@
 {% block title %}Painel{% endblock %}
 {% block content %}
 
-{% if ocorrencias_comigo > 0 %}
-<div class="alert info" style="display:flex;align-items:center;gap:10px">
- {{ icon('bell', 15) }}
- <span style="flex:1">Você tem <strong>{{ ocorrencias_comigo }} ocorrência{{ 's' if ocorrencias_comigo > 1 }}</strong> sob sua responsabilidade.</span>
- <a href="?responsavel={{ current_user.id }}" class="btn btn-sm" style="background:var(--blue);color:white;border-color:var(--blue)">Ver →</a>
-</div>
-{% endif %}
-
 <div class="page-head">
  <div>
- <h1>Painel de ocorrências</h1>
- <p class="subtitle">Visão geral de todos os registros do setor de apoio.</p>
+ <h1>{{ "Meu Painel" if filtro_resp == current_user.id|string or not filtro_resp else "Painel de " + nome_contexto }}</h1>
+ <p class="subtitle">{{ subtitulo_contexto }}</p>
  </div>
  <a href="{{ url_for('main.nova_ocorrencia') }}" class="btn btn-primary">{{ icon('plus', 15) }} Nova ocorrência</a>
 </div>
 
-<div class="metrics">
+<!-- Cards de métricas personalizados pelo contexto -->
+<div class="metrics" style="grid-template-columns:repeat(5,1fr)">
  <div class="metric">
- <div class="metric-label">Total</div>
- <div class="metric-value">{{ total }}</div>
- <div class="metric-trend">registros</div>
+   <div class="metric-label">{% if filtro_resp == current_user.id|string or not filtro_resp %}Meu total{% else %}Total{% endif %}</div>
+   <div class="metric-value">{{ total_usuario }}</div>
+   <div class="metric-trend">{{ nome_contexto }}</div>
  </div>
  <div class="metric">
- <div class="metric-label">Abertas</div>
- <div class="metric-value" style="color:var(--green)">{{ abertas }}</div>
- <div class="metric-trend">aguardando ação</div>
+   <div class="metric-label">Abertas</div>
+   <div class="metric-value" style="color:var(--green)">{{ abertas }}</div>
+   <div class="metric-trend">{{ contexto_label }}</div>
  </div>
  <div class="metric">
- <div class="metric-label">Em andamento</div>
- <div class="metric-value" style="color:var(--blue)">{{ acomp }}</div>
- <div class="metric-trend">em andamento</div>
+   <div class="metric-label">Em andamento</div>
+   <div class="metric-value" style="color:var(--blue)">{{ acomp }}</div>
+   <div class="metric-trend">{{ contexto_label }}</div>
  </div>
  <div class="metric">
- <div class="metric-label">Encerradas</div>
- <div class="metric-value" style="color:var(--red)">{{ encerradas }}</div>
- <div class="metric-trend">resolvidas</div>
+   <div class="metric-label">Encerradas</div>
+   <div class="metric-value" style="color:var(--red)">{{ encerradas }}</div>
+   <div class="metric-trend">{{ contexto_label }}</div>
+ </div>
+ <div class="metric">
+   <div class="metric-label">Total geral</div>
+   <div class="metric-value" style="color:var(--text-3)">{{ total_geral }}</div>
+   <div class="metric-trend">todas as ocorrências</div>
  </div>
 </div>
 
 <form method="GET">
  <div class="toolbar">
- <!-- Busca com lupa -->
  <div class="search-wrap">
  <span class="search-icon"></span>
  <input class="field" type="text" name="nome"
@@ -58,7 +55,7 @@
  {% endfor %}
  </select>
 
- <select class="sel" name="status" style="width:160px;flex-shrink:0">
+ <select class="sel" name="status" style="width:170px;flex-shrink:0">
  <option value="">Status</option>
  <option value="aberta" {% if filtro_status=='aberta' %}selected{% endif %}>Aberta</option>
  <option value="em_andamento" {% if filtro_status=='em_andamento' %}selected{% endif %}>Em andamento</option>
@@ -68,13 +65,16 @@
  <select class="sel" name="responsavel" style="width:150px;flex-shrink:0">
  <option value="">Responsável</option>
  {% for a in atendentes %}
+ {% if a.id != current_user.id %}
  <option value="{{ a.id }}" {% if filtro_resp == a.id|string %}selected{% endif %}>{{ a.nome }}</option>
+ {% endif %}
  {% endfor %}
  </select>
 
  <button type="submit" class="btn btn-secondary btn-sm" style="flex-shrink:0">Filtrar</button>
- <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost btn-sm" style="flex-shrink:0">Limpar</a>
-
+ <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary btn-sm" style="flex-shrink:0">
+   Limpar filtros
+ </a>
  </div>
 </form>
 
@@ -93,13 +93,22 @@
  </thead>
  <tbody>
  {% for o in ocorrencias %}
- <tr {% if o.responsavel_id == current_user.id and o.status != 'encerrada' %}style="background:var(--green-soft)"{% endif %}>
+ <tr>
  <td><span class="id-mono">#{{ '%04d' % o.id }}</span></td>
  <td class="student-cell">
+ <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
  <a href="{{ url_for('alunos.perfil', id=o.aluno_id) }}"
  style="text-decoration:none;color:inherit">
  <strong style="border-bottom:1px dashed var(--border-2)">{{ o.aluno.nome }}</strong>
  </a>
+ {% if o.aluno.menor_de_idade %}
+ <span style="display:inline-flex;align-items:center;
+              background:var(--amber-soft);color:var(--amber-text);
+              border:1px solid var(--amber-border);border-radius:20px;
+              font-size:10px;font-weight:600;padding:1px 7px;
+              vertical-align:middle">Menor</span>
+ {% endif %}
+ </div>
  <small>
  {{ o.aluno.curso or o.aluno.serie or '—' }}
  {% if o.aluno.turma %} · Turma {{ o.aluno.turma }}{% endif %}
@@ -117,55 +126,26 @@
  {{ o.responsavel.nome[0]|upper }}
  </div>
  <div>
- <div style="font-size:13px;font-weight:{% if o.responsavel_id == current_user.id %}500{% else %}400{% endif %};color:var(--text-1)">
- {{ o.responsavel.nome }}
- {% if o.responsavel_id == current_user.id %}
- <span style="font-size:11px;color:var(--green-text);font-weight:400"> (você)</span>
- {% endif %}
+ <div style="font-size:13px;font-weight:500">
+   {{ o.responsavel.nome }}
+   {% if o.responsavel_id == current_user.id %}<span style="color:var(--text-3);font-weight:400;font-size:11px"> (você)</span>{% endif %}
  </div>
- <div style="font-size:11.5px;color:var(--text-3)">{{ o.responsavel.perfil|capitalize }}</div>
+ <div style="font-size:11px;color:var(--text-3)">
+   {% if o.responsavel.perfil == 'coordenacao' %}Coordenacao
+   {% elif o.responsavel.perfil == 'pedagogia' %}Pedagogo
+   {% else %}Atendente{% endif %}
+ </div>
  </div>
  </div>
  </td>
- <td style="font-size:12.5px;color:var(--text-3)">{{ o.data_criacao.strftime('%d/%m/%Y') }}</td>
+ <td style="font-size:12px;color:var(--text-3)">{{ o.data_criacao.strftime('%d/%m/%Y') }}</td>
  <td><a href="{{ url_for('main.ver_ocorrencia', id=o.id) }}" class="btn btn-ghost btn-sm">{{ icon('eye', 13) }} Ver</a></td>
  </tr>
  {% else %}
- <tr>
- <td class="td-empty" colspan="7">
- <div class="empty-state">
- <div class="icon"></div>
- <p>Nenhuma ocorrência encontrada.</p>
- </div>
- </td>
- </tr>
+ <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">Nenhuma ocorrência encontrada.</td></tr>
  {% endfor %}
  </tbody>
  </table>
 </div>
-
-{% if paginacao.pages > 1 %}
-<div class="pagination">
- <span class="pagination-info">
- {{ ((paginacao.page-1)*15)+1 }}–{{ [paginacao.page*15, paginacao.total]|min }} de {{ paginacao.total }}
- </span>
- <div class="pagination-pages">
- {% if paginacao.has_prev %}
- <a href="?page={{ paginacao.prev_num }}&nome={{ filtro_nome }}&tipo={{ filtro_tipo }}&status={{ filtro_status }}&responsavel={{ filtro_resp }}" class="btn btn-ghost btn-sm">{{ icon('chevron-left', 14) }}</a>
- {% endif %}
- {% for p in paginacao.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
- {% if p %}
- <a href="?page={{ p }}&nome={{ filtro_nome }}&tipo={{ filtro_tipo }}&status={{ filtro_status }}&responsavel={{ filtro_resp }}"
- class="btn btn-sm {% if p == paginacao.page %}btn-primary{% else %}btn-ghost{% endif %}">{{ p }}</a>
- {% else %}
- <span style="padding:0 4px;color:var(--text-3);line-height:30px">…</span>
- {% endif %}
- {% endfor %}
- {% if paginacao.has_next %}
- <a href="?page={{ paginacao.next_num }}&nome={{ filtro_nome }}&tipo={{ filtro_tipo }}&status={{ filtro_status }}&responsavel={{ filtro_resp }}" class="btn btn-ghost btn-sm">{{ icon('chevron-right', 14) }}</a>
- {% endif %}
- </div>
-</div>
-{% endif %}
 
 {% endblock %}

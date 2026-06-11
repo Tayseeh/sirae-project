@@ -17,14 +17,30 @@
       <a href="{{ url_for('alunos.perfil', id=ocorrencia.aluno_id) }}" 
          style="color:var(--green-text);text-decoration:none;font-weight:500">{{ ocorrencia.aluno.nome }}</a>
       · {{ ocorrencia.tipo }}
-      {% if ocorrencia.aluno.serie %} · {{ ocorrencia.aluno.serie }}{% endif %}
-      {% if ocorrencia.aluno.turma %} · Turma {{ ocorrencia.aluno.turma }}{% endif %}
     </p>
+    <p style="font-size:13px;color:var(--text-3);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      {% if ocorrencia.aluno.matricula %}
+      <span>{{ ocorrencia.aluno.matricula }}</span>
+      <span style="color:var(--text-3)">•</span>
+      {% endif %}
+      {% if ocorrencia.aluno.nivel %}
+      <span>{{ ocorrencia.aluno.nivel|capitalize }}</span>
+      <span style="color:var(--text-3)">•</span>
+      {% endif %}
+      {% if ocorrencia.aluno.curso %}
+      <span>{{ ocorrencia.aluno.curso }}</span>
+      {% endif %}
+    </p>
+    {% if ocorrencia.aluno.menor_de_idade %}
+    <span style="display:inline-flex;align-items:center;
+                 background:var(--amber-soft);color:var(--amber-text);
+                 border:1px solid var(--amber-border);border-radius:20px;
+                 font-size:11px;font-weight:500;padding:1px 10px;margin-top:4px">
+      Menor de idade
+    </span>
+    {% endif %}
   </div>
   <div style="display:flex;align-items:center;gap:10px">
-    {% if ocorrencia.status == 'aberta' %}<span class="pill pill-open">Aberta</span>
-    {% elif ocorrencia.status == 'em_andamento' %}<span class="pill pill-andamento">Em andamento</span>
-    {% else %}<span class="pill pill-done">Encerrada</span>{% endif %}
     <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost">{{ icon('arrow-left', 13) }} Voltar</a>
   </div>
 </div>
@@ -71,14 +87,21 @@
     <div style="padding:16px 20px;display:flex;align-items:center;justify-content:center;min-width:130px">
       <div style="text-align:center">
         <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;
-          {% if ocorrencia.status == 'aberta' %}background:var(--green-soft)
+          {% if ocorrencia.status == 'aberta' %}background:#F0FDF4
           {% elif ocorrencia.status == 'em_andamento' %}background:var(--blue-soft)
           {% else %}background:var(--red-soft){% endif %}">
-          {% if ocorrencia.status == 'aberta' %}{{ icon('clock', 22) }}
-          {% elif ocorrencia.status == 'em_andamento' %}{{ icon('clock', 22) }}
-          {% else %}{{ icon('lock', 22) }}{% endif %}
+          {% if ocorrencia.status == 'aberta' %}
+            <span style="color:#065F46">{{ icon('clock', 22) }}</span>
+          {% elif ocorrencia.status == 'em_andamento' %}
+            <span style="color:var(--blue)">{{ icon('clock', 22) }}</span>
+          {% else %}
+            <span style="color:var(--red-text)">{{ icon('lock', 22) }}</span>
+          {% endif %}
         </div>
-        <div style="font-size:12px;font-weight:600;color:var(--text-2)">
+        <div style="font-size:12px;font-weight:600;
+          {% if ocorrencia.status == 'aberta' %}color:#065F46
+          {% elif ocorrencia.status == 'em_andamento' %}color:var(--blue)
+          {% else %}color:var(--red-text){% endif %}">
           {% if ocorrencia.status == 'aberta' %}Aberta
           {% elif ocorrencia.status == 'em_andamento' %}Em andamento
           {% else %}Encerrada{% endif %}
@@ -100,14 +123,35 @@
     </div>
     <div class="audit-list">
       {% for log in ocorrencia.logs|sort(attribute='data_hora', reverse=true) %}
-      {% if not log.sigiloso or current_user.perfil in ['coordenacao', 'admin'] %}
-      <div class="audit-entry" {% if log.sigiloso %} style="background:var(--amber-soft);border-left:3px solid var(--amber-border);padding-left:8px;border-radius:4px" {% endif %}>
+      {% if log.sigiloso and current_user.perfil not in ['coordenacao', 'admin'] %}
+      <div class="audit-entry" style="background:var(--amber-soft);border-left:3px solid var(--amber-border);border-radius:4px;opacity:0.75">
+        <span class="audit-dot amber" style="flex-shrink:0;align-self:flex-start;margin-top:3px"></span>
+        <div>
+          <strong>
+            {% if log.acao == 'criada' %}Criada
+            {% elif log.acao == 'encaminhada' %}Encaminhada
+            {% elif log.acao == 'atualizada' %}Andamento
+            {% elif log.acao == 'encerrada' %}Encerrada
+            {% else %}{{ log.acao|capitalize }}{% endif %}
+            <span style="font-weight:400;color:var(--text-3);font-size:12px"> · {{ log.usuario.nome }}</span>
+          </strong>
+          <p style="margin-top:4px;font-size:12px;color:var(--amber-text);font-style:italic">
+            Conteúdo restrito — visível apenas para a coordenação.
+          </p>
+          <p style="font-size:11px;margin-top:4px;color:var(--text-3)">
+            {{ log.data_hora.strftime('%d/%m/%Y às %H:%M') }}
+            <span style="font-size:10px;color:var(--amber-text);font-weight:600"> · Sigiloso</span>
+          </p>
+        </div>
+      </div>
+      {% else %}
+      <div class="audit-entry" {% if log.sigiloso %} style="background:var(--amber-soft);border-left:3px solid var(--amber-border);border-radius:4px" {% endif %}>
         <span class="audit-dot
           {% if log.acao == 'criada' %}green
-          {% elif log.acao == 'encaminhada' %}blue
-          {% elif log.acao == 'atualizada' %}amber
+          {% elif log.acao == 'encaminhada' %}amber
+          {% elif log.acao == 'atualizada' %}blue
           {% elif log.acao == 'encerrada' %}red
-          {% endif %}"></span>
+          {% endif %}" style="flex-shrink:0;align-self:flex-start;margin-top:3px"></span>
         <div>
           <strong>
             {% if log.acao == 'criada' %}Criada
@@ -137,11 +181,7 @@ Resolução: ')
             </div>
           {% elif log.acao == 'encaminhada' %}
             <p style="margin-top:3px;font-size:12.5px;white-space:pre-line">{{ texto }}</p>
-          {% elif log.acao == 'encerrada' and 'Resolução:' in (log.descricao_acao or '') %}
-            <div style="margin-top:5px">
-              <span style="font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Resolução</span>
-              <p style="margin-top:3px;font-size:12.5px;color:var(--text-2);white-space:pre-line">{{ texto | replace('Encerrada por ' ~ log.usuario.nome ~ '.\nResolução: ', '') }}</p>
-            </div>
+       
           {% else %}
             <p style="margin-top:3px;font-size:12.5px;white-space:pre-line">{{ texto }}</p>
           {% endif %}
@@ -164,9 +204,10 @@ Resolução: ')
         </div>
       </div>
       {% endif %}
-      {% else %}
-      <p style="padding:20px;color:var(--text-3);font-size:13px">Sem histórico registrado.</p>
       {% endfor %}
+      {% if not ocorrencia.logs %}
+      <p style="padding:20px;color:var(--text-3);font-size:13px">Sem histórico registrado.</p>
+      {% endif %}
     </div>
   </div>
 
@@ -207,20 +248,28 @@ Resolução: ')
           </label>
           <div>
             <div style="font-size:12px;color:var(--text-3);margin-bottom:5px;font-weight:500">Anexar documento (opcional)</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;
-       padding:8px 12px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);gap:10px"
-       id="attach-box-and">
-  <span id="attach-info-and" style="font-size:12.5px;color:var(--text-3);flex:1">
-    Nenhum arquivo selecionado
-  </span>
-  <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0;font-size:12px">
-    Anexar arquivo
-    <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-           style="display:none" onchange="previewAnexoLog(this, 'and')">
-  </label>
+            <div class="attach-area" id="attach-box-and" style="margin-top:4px">
+  <div id="attach-placeholder-and" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+    <span style="font-size:13px;color:var(--text-3)">PDF, JPG, PNG, DOC — máx. 5MB</span>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0">
+      {{ icon('upload', 13) }} Selecionar arquivo
+      <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+             style="display:none" onchange="previewAnexoLog(this, 'and')">
+    </label>
+  </div>
+  <div id="attach-selected-and" style="display:none;width:100%;align-items:center;gap:10px">
+    {{ icon('paperclip', 18) }}
+    <div style="flex:1;min-width:0">
+      <div id="attach-nome-and" style="font-size:13.5px;font-weight:500;color:var(--text-1);
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="attach-tamanho-and" style="font-size:12px;color:var(--text-3)"></div>
+    </div>
+    <button type="button" onclick="removerAnexoLog('and')"
+            class="btn btn-danger btn-sm" style="flex-shrink:0">Remover</button>
+  </div>
 </div>
           </div>
-          {% if current_user.perfil == 'coordenacao' %}
+          {% if ocorrencia.responsavel.perfil == 'coordenacao' or current_user.perfil == 'coordenacao' %}
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;
                         padding:10px 12px;background:var(--amber-soft);border-radius:var(--radius-sm);
                         border:1px solid var(--amber-border)">
@@ -244,10 +293,10 @@ Resolução: ')
       <form method="POST" action="{{ url_for('main.encaminhar_ocorrencia', id=ocorrencia.id) }}" enctype="multipart/form-data">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
           <label class="lbl">Encaminhar para
-            <select class="sel" name="responsavel_id" required style="margin-top:5px">
+            <select class="sel" name="responsavel_id" required style="margin-top:5px" id="select-encaminhar" onchange="toggleSigilosoEnc()">
               <option value="">Selecione…</option>
               {% for u in opcoes %}
-              <option value="{{ u.id }}">
+              <option value="{{ u.id }}" data-perfil="{{ u.perfil }}">
                 {{ u.nome }} —
                 {% if u.perfil == 'coordenacao' %}Coordenação
                 {% elif u.perfil == 'pedagogia' %}Pedagogo
@@ -260,20 +309,37 @@ Resolução: ')
             <textarea class="field" name="motivo" rows="3" style="margin-top:5px"
               placeholder="Por que está encaminhando?"></textarea>
           </label>
+          <label id="sigiloso-enc-wrap" style="display:none;align-items:center;gap:8px;cursor:pointer;
+                        padding:10px 12px;background:var(--amber-soft);border-radius:var(--radius-sm);
+                        border:1px solid var(--amber-border)">
+            <input type="checkbox" name="sigiloso" value="1"
+                   style="accent-color:var(--amber);width:15px;height:15px;flex-shrink:0">
+            <span style="font-size:13px;color:var(--amber-text)">
+              {{ icon('lock', 13) }} Visível apenas para a coordenação
+            </span>
+          </label>
         </div>
         <div style="padding:0 20px 12px">
           <div style="font-size:12px;color:var(--text-3);margin-bottom:5px;font-weight:500">Anexar documento (opcional)</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;
-       padding:8px 12px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);gap:10px"
-       id="attach-box-enc">
-  <span id="attach-info-enc" style="font-size:12.5px;color:var(--text-3);flex:1">
-    Nenhum arquivo selecionado
-  </span>
-  <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0;font-size:12px">
-    Anexar arquivo
-    <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-           style="display:none" onchange="previewAnexoLog(this, 'enc')">
-  </label>
+          <div class="attach-area" id="attach-box-enc" style="margin-top:4px">
+  <div id="attach-placeholder-enc" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+    <span style="font-size:13px;color:var(--text-3)">PDF, JPG, PNG, DOC — máx. 5MB</span>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0">
+      {{ icon('upload', 13) }} Selecionar arquivo
+      <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+             style="display:none" onchange="previewAnexoLog(this, 'enc')">
+    </label>
+  </div>
+  <div id="attach-selected-enc" style="display:none;width:100%;align-items:center;gap:10px">
+    {{ icon('paperclip', 18) }}
+    <div style="flex:1;min-width:0">
+      <div id="attach-nome-enc" style="font-size:13.5px;font-weight:500;color:var(--text-1);
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="attach-tamanho-enc" style="font-size:12px;color:var(--text-3)"></div>
+    </div>
+    <button type="button" onclick="removerAnexoLog('enc')"
+            class="btn btn-danger btn-sm" style="flex-shrink:0">Remover</button>
+  </div>
 </div>
         </div>
         <div class="form-actions">
@@ -297,17 +363,25 @@ Resolução: ')
         <div style="padding:0 20px 12px;display:flex;flex-direction:column;gap:10px">
           <div>
             <div style="font-size:12px;color:var(--text-3);margin-bottom:5px;font-weight:500">Anexar documento (opcional)</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;
-       padding:8px 12px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);gap:10px"
-       id="attach-box-close">
-  <span id="attach-info-close" style="font-size:12.5px;color:var(--text-3);flex:1">
-    Nenhum arquivo selecionado
-  </span>
-  <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0;font-size:12px">
-    Anexar arquivo
-    <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-           style="display:none" onchange="previewAnexoLog(this, 'close')">
-  </label>
+            <div class="attach-area" id="attach-box-close" style="margin-top:4px">
+  <div id="attach-placeholder-close" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+    <span style="font-size:13px;color:var(--text-3)">PDF, JPG, PNG, DOC — máx. 5MB</span>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0">
+      {{ icon('upload', 13) }} Selecionar arquivo
+      <input type="file" name="anexo_log" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+             style="display:none" onchange="previewAnexoLog(this, 'close')">
+    </label>
+  </div>
+  <div id="attach-selected-close" style="display:none;width:100%;align-items:center;gap:10px">
+    {{ icon('paperclip', 18) }}
+    <div style="flex:1;min-width:0">
+      <div id="attach-nome-close" style="font-size:13.5px;font-weight:500;color:var(--text-1);
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="attach-tamanho-close" style="font-size:12px;color:var(--text-3)"></div>
+    </div>
+    <button type="button" onclick="removerAnexoLog('close')"
+            class="btn btn-danger btn-sm" style="flex-shrink:0">Remover</button>
+  </div>
 </div>
           </div>
           {% if current_user.perfil == 'coordenacao' %}
@@ -355,6 +429,46 @@ function previewAnexoLog(input, suffix) {
   box.style.borderColor  = 'var(--green)';
   box.style.borderStyle  = 'solid';
   box.style.background   = 'var(--green-soft)';
+}
+
+function toggleSigilosoEnc() {
+  const sel  = document.getElementById('select-encaminhar');
+  const wrap = document.getElementById('sigiloso-enc-wrap');
+  if (!sel || !wrap) return;
+  const opt = sel.options[sel.selectedIndex];
+  const perfil = opt ? opt.getAttribute('data-perfil') : '';
+  wrap.style.display = perfil === 'coordenacao' ? 'flex' : 'none';
+  if (perfil !== 'coordenacao') {
+    const cb = wrap.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = false;
+  }
+}
+
+function previewAnexoLog(input, suffix) {
+  const placeholder = document.getElementById('attach-placeholder-' + suffix);
+  const selected    = document.getElementById('attach-selected-' + suffix);
+  const nome        = document.getElementById('attach-nome-' + suffix);
+  const tamanho     = document.getElementById('attach-tamanho-' + suffix);
+  const box         = document.getElementById('attach-box-' + suffix);
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const kb = file.size / 1024;
+  nome.textContent    = file.name;
+  tamanho.textContent = kb > 1024 ? (kb/1024).toFixed(1)+' MB' : kb.toFixed(0)+' KB';
+  if (placeholder) placeholder.style.display = 'none';
+  if (selected)    selected.style.display = 'flex';
+  if (box) { box.style.borderColor = 'var(--green)'; box.style.background = 'var(--green-soft)'; }
+}
+
+function removerAnexoLog(suffix) {
+  const placeholder = document.getElementById('attach-placeholder-' + suffix);
+  const selected    = document.getElementById('attach-selected-' + suffix);
+  const box         = document.getElementById('attach-box-' + suffix);
+  const input       = document.querySelector('#attach-box-' + suffix + ' input[type="file"]');
+  if (input) input.value = '';
+  if (placeholder) placeholder.style.display = 'flex';
+  if (selected)    selected.style.display = 'none';
+  if (box) { box.style.borderColor = ''; box.style.background = ''; }
 }
 
 function trocarAba(id, btn) {

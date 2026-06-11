@@ -84,33 +84,48 @@
  </div>
  <div class="form-grid">
 
- <label class="lbl wide">Nome completo *
- <input class="field" type="text" name="nome" required maxlength="100"
+ <label class="lbl"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">Nome completo *</span>
+ <input class="field" type="text" name="nome" id="nome-aluno" required maxlength="100"
  value="{{ form.get('nome', '') }}"
- placeholder="Nome completo do aluno">
+ placeholder="Nome completo do aluno"
+ oninput="validarNome(this, 'aviso-nome-aluno')"
+ onblur="validarNome(this, 'aviso-nome-aluno')">
+ <div id="aviso-nome-aluno" style="display:none;margin-top:4px;padding:5px 10px;
+      background:var(--amber-soft);border-left:3px solid var(--amber-border);
+      border-radius:var(--radius-sm);font-size:12px;color:var(--amber-text)">
+   Nome deve conter apenas letras e espaços.
+ </div>
  </label>
 
- <label class="lbl">Data de nascimento
- <input class="field" type="date" name="data_nascimento"
+ <label class="lbl"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">Data de nascimento *</span>
+ <input class="field" type="date" name="data_nascimento" id="data_nascimento"
  value="{{ form.get('data_nascimento', '') }}"
- max="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+ min="{{ (now.year - 100)|string + now.strftime('-%m-%d') if now else '' }}"
+ max="{{ now.strftime('%Y-%m-%d') if now else '' }}"
+ required
+ onchange="verificarIdade(this)">
+ <div id="aviso-idade-minima" style="display:none;margin-top:4px;
+      padding:5px 10px;background:var(--amber-soft);border-left:3px solid var(--amber-border);
+      border-radius:var(--radius-sm);font-size:12px;color:var(--amber-text)">
+   ✕ Idade mínima para cadastro é 14 anos.
+ </div>
  </label>
 
- <label class="lbl">CPF
+ <label class="lbl"><span style="display:flex;align-items:center;gap:2px">CPF<span id="asterisco-cpf" style="display:inline"></span></span>
  <input class="field" type="text" name="cpf" id="cpf"
  value="{{ form.get('cpf', '') }}"
  placeholder="000.000.000-00"
  maxlength="14" oninput="mascaraCPF(this)">
- <span class="campo-hint">11 dígitos — deixe em branco se não tiver</span>
  </label>
 
- <label class="lbl">E-mail
- <input class="field" type="email" name="email" oninput="this.value=this.value.toLowerCase()" maxlength="100"
+ <label class="lbl" id="wrap-email-aluno"><span style="display:flex;align-items:center;gap:2px">E-mail<span id="asterisco-email" style="display:inline"></span></span>
+ <input class="field" type="email" name="email" id="email-aluno" oninput="this.value=this.value.toLowerCase()" maxlength="100"
  value="{{ form.get('email', '') }}"
- placeholder="aluno@email.com">
+ placeholder="aluno@email.com"
+ onblur="validarEmail(this)">
  </label>
 
- <label class="lbl">Telefone / WhatsApp
+ <label class="lbl" id="wrap-tel-aluno"><span style="display:flex;align-items:center;gap:2px">Telefone / WhatsApp<span id="asterisco-tel" style="display:inline"></span></span>
  <input class="field" type="text" name="telefone" id="telefone"
  value="{{ form.get('telefone', '') }}"
  placeholder="(16) 99999-9999"
@@ -128,40 +143,43 @@
  </div>
  <div class="form-grid">
 
- <label class="lbl">Matrícula *
- <input class="field" type="text" name="matricula" maxlength="20"
+ <label class="lbl"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">Matrícula *</span>
+ <input class="field" type="text" name="matricula" id="matricula" required maxlength="10"
  value="{{ form.get('matricula', '') }}"
- placeholder="Ex: 2026-T001"
- oninput="this.value=this.value.replace(/[^a-zA-Z0-9\-]/g,'').toUpperCase()" required>
- <span class="campo-hint">Máximo 20 caracteres</span>
+ placeholder="Selecione o nível primeiro"
+ {% if not form.get('nivel') %}disabled{% endif %}
+ onkeydown="return filtrarDigitoMatricula(event, this)">
+ <span class="campo-hint" id="matricula-hint">Ano + Sigla + 3 Dígitos · Ex:</span>
  </label>
 
- <label class="lbl">Nível
- <select class="sel" name="nivel" id="nivel" onchange="atualizarCursos(); atualizarSeries()" required>
+ <label class="lbl"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">Nível *</span>
+ <select class="sel" name="nivel" id="nivel" onchange="atualizarCursos(); atualizarSeries(); atualizarTurma(); atualizarMatricula()" required>
  <option value="">Selecione...</option>
- <option value="tecnico"   {% if form.get('nivel')=='tecnico'   %}selected{% endif %}>Técnico</option>
- <option value="graduacao" {% if form.get('nivel')=='graduacao' %}selected{% endif %}>Graduação</option>
- <option value="pos"       {% if form.get('nivel')=='pos'       %}selected{% endif %}>Pós-graduação</option>
+ <option value="aprendizagem" {% if form.get('nivel')=='aprendizagem' %}selected{% endif %}>Aprendizagem Industrial</option>
+ <option value="tecnico"      {% if form.get('nivel')=='tecnico'      %}selected{% endif %}>Técnico</option>
+ <option value="graduacao"    {% if form.get('nivel')=='graduacao'    %}selected{% endif %}>Graduação</option>
+ <option value="pos"          {% if form.get('nivel')=='pos'          %}selected{% endif %}>Pós-graduação</option>
+ <option value="livre"        {% if form.get('nivel')=='livre'        %}selected{% endif %}>Formação Continuada / Livre</option>
  </select>
  </label>
 
- <label class="lbl wide">Curso
+ <label class="lbl wide"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">Curso *</span>
  <select class="sel" name="curso" id="select-curso" style="margin-top:5px" required>
  <option value="">Selecione o nível primeiro...</option>
  </select>
  </label>
 
- <label class="lbl">Semestre
+ <label class="lbl">Semestre / Módulo
  <select class="sel" name="serie" id="serie">
  <option value="">Selecione o nível primeiro...</option>
  </select>
  </label>
 
- <label class="lbl">Turma
- <select class="sel" name="turma">
+ <label class="lbl" id="wrap-turma" style="display:none">Turma
+ <select class="sel" name="turma" id="select-turma">
  <option value="">Selecione...</option>
- {% for t in ['A','B','C','D','E','F'] %}
- <option value="{{ t }}" {% if form.get('turma')==t %}selected{% endif %}>Turma {{ t }}</option>
+ {% for t in ['AI-MA','AI-MB','AI-MC','AI-TA','AI-TB','AI-NA','AI-NB'] %}
+ <option value="{{ t }}" {% if form.get('turma')==t %}selected{% endif %}>{{ t }}</option>
  {% endfor %}
  </select>
  </label>
@@ -178,30 +196,38 @@
  </div>
  </div>
 
+ <!-- Aviso menor de idade (discreto, aparece abaixo dos dados pessoais) -->
+ <div id="aviso-menor" style="display:none;
+      padding:6px 12px;background:var(--amber-soft);border-left:3px solid var(--amber-border);
+      border-radius:var(--radius-sm);font-size:12px;color:var(--amber-text)">
+   ⚠ Aluno menor de idade — responsável legal obrigatório.
+ </div>
+
  <!-- Responsável / Contato de emergência -->
  <div class="panel" style="margin-top:8px">
  <div class="panel-head">
    <h2 id="titulo-contato">Contato de emergência</h2>
-   <p>Obrigatório para alunos menores de 18 anos.</p>
+   <p id="subtitulo-contato">Obrigatório — informe um contato de emergência.</p>
  </div>
- <div style="padding:16px 20px 4px">
-   <label class="lbl">Tipo de vínculo
-     <select class="sel" name="tipo_contato" id="tipo-contato" onchange="atualizarTipoContato()" style="margin-top:5px">
-       <option value="emergencia" {% if form.get('tipo_contato','emergencia')=='emergencia' %}selected{% endif %}>Contato de emergência</option>
-       <option value="responsavel" {% if form.get('tipo_contato')=='responsavel' %}selected{% endif %}>Responsável legal</option>
-     </select>
-   </label>
- </div>
+ <!-- tipo_contato é definido automaticamente pela idade, sem exibir o select -->
+ <input type="hidden" name="tipo_contato" id="tipo-contato" value="{{ form.get('tipo_contato', 'emergencia') }}">
  <div class="form-grid">
 
- <label class="lbl wide"><span id="label-nome-contato">Nome do contato</span>
- <input class="field" type="text" name="responsavel_nome" maxlength="100"
+ <label class="lbl"><span style="display:inline-flex;align-items:center;gap:2px"><span id="label-nome-contato">Nome do contato</span>*</span>
+ <input class="field" type="text" name="responsavel_nome" id="responsavel_nome" maxlength="100"
  value="{{ form.get('responsavel_nome', '') }}"
- placeholder="Nome completo" style="margin-top:5px">
+ placeholder="Nome completo" required
+ oninput="validarNome(this, 'aviso-nome-resp')"
+ onblur="validarNome(this, 'aviso-nome-resp')">
+ <div id="aviso-nome-resp" style="display:none;margin-top:4px;padding:5px 10px;
+      background:var(--amber-soft);border-left:3px solid var(--amber-border);
+      border-radius:var(--radius-sm);font-size:12px;color:var(--amber-text)">
+   Nome deve conter apenas letras e espaços.
+ </div>
  </label>
 
- <label class="lbl" id="wrap-parentesco">Parentesco / Vínculo
- <select class="sel" name="responsavel_parentesco">
+ <label class="lbl" id="wrap-parentesco"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">Parentesco / Vínculo <span id="asterisco-parentesco"></span></span>
+ <select class="sel" name="responsavel_parentesco" id="select-parentesco">
  <option value="">Selecione...</option>
  {% for p in ['Pai','Mãe','Avô','Avó','Tio','Tia','Responsável legal','Outro'] %}
  <option value="{{ p }}" {% if form.get('responsavel_parentesco')==p %}selected{% endif %}>{{ p }}</option>
@@ -209,18 +235,25 @@
  </select>
  </label>
 
- <label class="lbl">Telefone
- <input class="field" type="text" name="responsavel_contato"
- value="{{ form.get('responsavel_contato', '') }}"
- placeholder="(16) 99999-9999"
- maxlength="15" oninput="mascaraTel(this)" style="margin-top:5px">
- 
+ <label class="lbl" id="wrap-cpf-responsavel" style="display:none"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">CPF do responsável *</span>
+ <input class="field" type="text" name="responsavel_cpf" id="responsavel_cpf"
+ value="{{ form.get('responsavel_cpf', '') }}"
+ placeholder="000.000.000-00"
+ maxlength="14" oninput="mascaraCPF(this)">
  </label>
 
- <label class="lbl wide">E-mail
- <input class="field" type="email" name="responsavel_email" maxlength="100"
+ <label class="lbl"><span style="display:block;font-size:13px;font-weight:500;color:var(--text-2)">Telefone *</span>
+ <input class="field" type="text" name="responsavel_contato" id="responsavel_contato"
+ value="{{ form.get('responsavel_contato', '') }}"
+ placeholder="(16) 99999-9999"
+ maxlength="15" oninput="mascaraTel(this)" required>
+ </label>
+
+ <label class="lbl wide"><span style="display:flex;align-items:center;gap:2px">E-mail<span id="asterisco-email-resp" style="display:inline"></span></span>
+ <input class="field" type="email" name="responsavel_email" id="responsavel_email" maxlength="100"
  value="{{ form.get('responsavel_email', '') }}"
- placeholder="contato@email.com" style="margin-top:5px">
+ placeholder="contato@email.com"
+ onblur="validarEmail(this)">
  </label>
 
  </div>
@@ -230,11 +263,171 @@
 </div><!-- /grid -->
 </form>
 
+
 <style>
 .campo-hint { font-size:11px; color:var(--muted); font-weight:400; margin-top:2px; }
+label.lbl > span:first-child { display:inline-flex; align-items:center; gap:2px; }
+/* Asterisco sempre na mesma linha que o label */
+label.lbl { gap:4px; }
 </style>
 
 <script>
+// ── Verificação de idade ────────────────────────────────
+function calcularIdade(dataNasc) {
+  const hoje = new Date();
+  const nasc = new Date(dataNasc);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
+
+function verificarIdade(input) {
+  const avisoMenor  = document.getElementById('aviso-menor');
+  const avisoMin    = document.getElementById('aviso-idade-minima');
+  const emailAluno  = document.getElementById('email-aluno');
+  const telAluno    = document.getElementById('telefone');
+  const cpfAluno    = document.getElementById('cpf');
+  const astCpfAluno = document.getElementById('asterisco-cpf');
+  const astEmail    = document.getElementById('asterisco-email');
+  const astTel      = document.getElementById('asterisco-tel');
+  const submitBtn   = document.querySelector('button[type="submit"]');
+  const nomeResp    = document.getElementById('responsavel_nome');
+  const telResp     = document.getElementById('responsavel_contato');
+  const emailResp   = document.getElementById('responsavel_email');
+  const astEmailResp= document.getElementById('asterisco-email-resp');
+  const cpfResp     = document.getElementById('responsavel_cpf');
+  const wrapCpfResp    = document.getElementById('wrap-cpf-responsavel');
+  const tipoContato    = document.getElementById('tipo-contato');
+  const parentesco     = document.getElementById('select-parentesco');
+  const astParentesco  = document.getElementById('asterisco-parentesco');
+
+  // Reset
+  input.setCustomValidity('');
+  avisoMenor.style.display = 'none';
+  avisoMin.style.display   = 'none';
+  if (submitBtn) submitBtn.disabled = false;
+
+  if (!input.value) {
+    if (emailAluno) { emailAluno.required = false; astEmail.textContent = ''; }
+    if (telAluno)   { telAluno.required   = false; astTel.textContent   = ''; }
+    if (cpfAluno)   { cpfAluno.required   = false; if (astCpfAluno) astCpfAluno.textContent = ''; }
+    if (nomeResp)   nomeResp.required  = false;
+    if (telResp)    telResp.required   = false;
+    if (emailResp)  { emailResp.required = false; if (astEmailResp) astEmailResp.textContent = ''; }
+    if (cpfResp)    cpfResp.required   = false;
+    if (parentesco) { parentesco.required = false; if (astParentesco) astParentesco.textContent = ''; }
+    if (wrapCpfResp) wrapCpfResp.style.display = 'none';
+    return;
+  }
+
+  const idade = calcularIdade(input.value);
+
+  if (idade > 100) {
+    avisoMin.style.display = 'block';
+    avisoMin.querySelector ? avisoMin.innerHTML = '✕ Data de nascimento inválida — verifique o ano informado.' : null;
+    input.setCustomValidity('Data de nascimento inválida.');
+    if (submitBtn) submitBtn.disabled = true;
+    if (cpfAluno)   { cpfAluno.required   = false; if (astCpfAluno) astCpfAluno.textContent = ''; }
+    if (nomeResp)   nomeResp.required  = false;
+    if (telResp)    telResp.required   = false;
+    if (emailResp)  { emailResp.required = false; if (astEmailResp) astEmailResp.textContent = ''; }
+    if (cpfResp)    cpfResp.required   = false;
+    if (wrapCpfResp) wrapCpfResp.style.display = 'none';
+    return;
+  }
+
+  if (idade < 14) {
+    avisoMin.style.display = 'block';
+    avisoMin.innerHTML = '✕ Idade mínima para cadastro é 14 anos.';
+    input.setCustomValidity('Idade mínima é 14 anos.');
+    if (submitBtn) submitBtn.disabled = true;
+    if (emailAluno) { emailAluno.required = false; astEmail.textContent = ''; }
+    if (telAluno)   { telAluno.required   = false; astTel.textContent   = ''; }
+    if (cpfAluno)   { cpfAluno.required   = false; if (astCpfAluno) astCpfAluno.textContent = ''; }
+    if (nomeResp)   nomeResp.required  = false;
+    if (telResp)    telResp.required   = false;
+    if (emailResp)  { emailResp.required = false; if (astEmailResp) astEmailResp.textContent = ''; }
+    if (cpfResp)    cpfResp.required   = false;
+    if (parentesco) { parentesco.required = false; if (astParentesco) astParentesco.textContent = ''; }
+    if (wrapCpfResp) wrapCpfResp.style.display = 'none';
+    return;
+  }
+
+  if (idade < 18) {
+    // Menor — responsável obrigatório, e-mail/tel aluno opcionais
+    avisoMenor.style.display = 'block';
+    if (emailAluno) { emailAluno.required = false; astEmail.textContent = ''; }
+    if (telAluno)   { telAluno.required   = false; astTel.textContent   = ''; }
+    if (nomeResp)   nomeResp.required  = true;
+    if (telResp)    telResp.required   = true;
+    if (emailResp)  { emailResp.required = false; if (astEmailResp) astEmailResp.textContent = ''; }
+    if (cpfAluno)   { cpfAluno.required   = false; if (astCpfAluno) astCpfAluno.textContent = ''; }
+    if (wrapCpfResp) wrapCpfResp.style.display = 'block';
+    if (cpfResp)    cpfResp.required   = true;
+    if (parentesco) { parentesco.required = true; if (astParentesco) astParentesco.textContent = '*'; }
+    if (tipoContato) tipoContato.value = 'responsavel';
+    atualizarTipoContato();
+  } else {
+    // Maior — contato de emergência automático
+    avisoMenor.style.display = 'none';
+    if (emailAluno) { emailAluno.required = false; astEmail.textContent = ''; }
+    if (telAluno)   { telAluno.required   = true;  astTel.textContent   = ' *'; }
+    if (cpfAluno)   { cpfAluno.required   = true;  if (astCpfAluno) astCpfAluno.textContent = ' *'; }
+    if (nomeResp)   nomeResp.required  = true;
+    if (telResp)    telResp.required   = true;
+    if (emailResp)  { emailResp.required = false; if (astEmailResp) astEmailResp.textContent = ''; }
+    if (cpfResp)    cpfResp.required   = false;
+    if (parentesco) { parentesco.required = false; if (astParentesco) astParentesco.textContent = ''; }
+    if (wrapCpfResp) wrapCpfResp.style.display = 'none';
+    if (tipoContato) tipoContato.value = 'emergencia';
+    atualizarTipoContato();
+  }
+}
+
+// Dispara ao carregar se já houver data preenchida (edição)
+document.addEventListener('DOMContentLoaded', function() {
+  const campo = document.getElementById('data_nascimento');
+  if (campo && campo.value) verificarIdade(campo);
+
+  // CPF responsavel: mostrar/ocultar conforme tipo_contato ao carregar
+  atualizarTipoContato();
+
+  // Bloqueia submit se idade inválida (< 14 ou > 100)
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const dn = document.getElementById('data_nascimento');
+      if (!dn || !dn.value) return;
+      const idade = calcularIdade(dn.value);
+      if (idade < 14 || idade > 100) {
+        e.preventDefault();
+        dn.setCustomValidity('Data de nascimento inválida.');
+        dn.reportValidity();
+      }
+    });
+  }
+});
+
+// ── Validação de nome ─────────────────────────────────
+function validarNome(el, avisoId) {
+  const aviso = document.getElementById(avisoId);
+  if (!el.value.trim()) { if (aviso) aviso.style.display = 'none'; return true; }
+  // Permite letras (incluindo acentuadas), espaços e hífens (nomes compostos)
+  const valido = /^[a-zA-ZÀ-ÿ\s'\-]+$/.test(el.value.trim());
+  if (aviso) aviso.style.display = valido ? 'none' : 'block';
+  el.setCustomValidity(valido ? '' : 'Nome deve conter apenas letras e espaços.');
+  return valido;
+}
+
+// ── Validação de e-mail ───────────────────────────────
+function validarEmail(el) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const valido = !el.value || re.test(el.value.trim());
+  el.setCustomValidity(valido ? '' : 'Informe um e-mail válido. Ex: nome@email.com');
+  return valido;
+}
+
 // ── Máscaras ──────────────────────────────────────────
 function mascaraCPF(el) {
  let v = el.value.replace(/\D/g, '').slice(0, 11);
@@ -259,11 +452,27 @@ function mascaraTel(el) {
 
 // ── Dados por nível ──────────────────────────────────
 const cursosPorNivel = {
+  aprendizagem: [
+    'Aprendizagem em Mecatrônica',
+    'Aprendizagem em Eletroeletrônica',
+    'Aprendizagem em Fabricação Mecânica',
+    'Aprendizagem em Logística',
+    'Aprendizagem em Administração',
+    'Aprendizagem em Tecnologia da Informação',
+    'Aprendizagem em Soldagem',
+    'Aprendizagem em Automotiva',
+  ],
   tecnico: [
     'Técnico em Mecatrônica',
     'Técnico em Eletroeletrônica',
     'Técnico em Fabricação Mecânica',
     'Técnico em Administração',
+    'Técnico em Logística',
+    'Técnico em Tecnologia da Informação',
+    'Técnico em Soldagem',
+    'Técnico em Automotiva',
+    'Técnico em Refrigeração e Climatização',
+    'Técnico em Segurança do Trabalho',
   ],
   graduacao: [
     'Tecnologia em Mecatrônica Industrial',
@@ -273,18 +482,88 @@ const cursosPorNivel = {
     'Pós-Graduação em Indústria 4.0',
     'Pós-Graduação em Automação da Manufatura',
   ],
+  livre: [
+    'Operador de Solda MIG/MAG',
+    'Programação CNC',
+    'AutoCAD Industrial',
+    'Eletricista Industrial',
+    'Manutenção de Computadores',
+    'Excel Avançado',
+    'Gestão da Qualidade',
+    'NR-10 Básico',
+    'NR-12 Básico',
+    'Inglês Técnico',
+  ],
 };
 
 const seriesPorNivel = {
-  tecnico:   ['1º semestre','2º semestre','3º semestre','4º semestre'],
-  graduacao: ['1º semestre','2º semestre','3º semestre','4º semestre',
-              '5º semestre','6º semestre','7º semestre','8º semestre',
-              '9º semestre','10º semestre'],
-  pos:       ['1º semestre','2º semestre','3º semestre','4º semestre'],
+  aprendizagem: ['1º ano','2º ano'],
+  tecnico:      ['1º semestre','2º semestre','3º semestre','4º semestre'],
+  graduacao:    ['1º semestre','2º semestre','3º semestre','4º semestre',
+                 '5º semestre','6º semestre','7º semestre','8º semestre'],
+  pos:          ['1º semestre','2º semestre','3º semestre','4º semestre'],
+  livre:        [],
 };
 
 const cursoAtual = "{{ form.get('curso', '') }}";
 const serieAtual = "{{ form.get('serie', '') }}";
+
+const SIGLAS = {
+  aprendizagem: 'AI',
+  tecnico:      'T',
+  graduacao:    'G',
+  pos:          'PG',
+  livre:        'FC',
+};
+
+const EXEMPLOS = {
+  aprendizagem: '2026AI001',
+  tecnico:      '2026T001',
+  graduacao:    '2026G001',
+  pos:          '2026PG001',
+  livre:        '2026FC001',
+};
+
+function filtrarDigitoMatricula(e, el) {
+  const key = e.key;
+  // Permite teclas de controle (Backspace, Tab, Delete, setas, etc.)
+  if (key.length > 1) return true;
+  const nivel = document.getElementById('nivel').value;
+  // Bloqueia qualquer digitação se nível não selecionado
+  if (!nivel) { e.preventDefault(); return false; }
+  const siglas  = { aprendizagem:'AI', tecnico:'T', graduacao:'G', pos:'PG', livre:'FC' };
+  const prefixo = String(new Date().getFullYear()) + siglas[nivel];
+  const pos     = el.selectionStart;
+  // Dentro do prefixo — não permite editar
+  if (pos < prefixo.length) { e.preventDefault(); return false; }
+  // Após o prefixo — só dígitos (0-9)
+  if (!/^\d$/.test(key)) { e.preventDefault(); return false; }
+  return true;
+}
+
+function atualizarMatricula() {
+  const nivel  = document.getElementById('nivel').value;
+  const campo  = document.getElementById('matricula');
+  const hint   = document.getElementById('matricula-hint');
+  const siglas = { aprendizagem:'AI', tecnico:'T', graduacao:'G', pos:'PG', livre:'FC' };
+
+  if (!nivel || !campo) return;
+
+  const sigla   = siglas[nivel] || '';
+  const prefixo = String(new Date().getFullYear()) + sigla;
+  const exemplo = prefixo + '001';
+
+  // Habilita o campo
+  campo.disabled    = false;
+  campo.placeholder = exemplo;
+  if (hint) hint.textContent = `Ano + Sigla + 3 Dígitos · Ex: ${exemplo}`;
+
+  // Preenche com o prefixo se vazio ou tiver prefixo de outro nível
+  const val = campo.value;
+  if (!val || /^\d{4}(AI|T|G|PG|FC)\d*$/.test(val)) {
+    campo.value = prefixo;
+  }
+}
 
 function atualizarCursos() {
   const nivel = document.getElementById('nivel').value;
@@ -302,8 +581,13 @@ function atualizarCursos() {
 function atualizarSeries() {
   const nivel = document.getElementById('nivel').value;
   const sel   = document.getElementById('serie');
+  const series = seriesPorNivel[nivel] || [];
+  if (series.length === 0) {
+    sel.innerHTML = '<option value="">Não se aplica</option>';
+    return;
+  }
   sel.innerHTML = '<option value="">Selecione...</option>';
-  (seriesPorNivel[nivel] || []).forEach(s => {
+  series.forEach(s => {
     const op = document.createElement('option');
     op.value = s; op.textContent = s;
     if (s === serieAtual) op.selected = true;
@@ -312,7 +596,11 @@ function atualizarSeries() {
   if (!nivel) sel.innerHTML = '<option value="">Selecione o nível primeiro...</option>';
 }
 
-function atualizarTurnos() { /* todos os níveis aceitam todos os turnos */ }
+function atualizarTurma() {
+  const nivel = document.getElementById('nivel').value;
+  const wrap  = document.getElementById('wrap-turma');
+  if (wrap) wrap.style.display = nivel === 'aprendizagem' ? 'block' : 'none';
+}
 
 function atualizarTipoContato() {
   const tipo  = document.getElementById('tipo-contato').value;
@@ -328,27 +616,45 @@ function atualizarTipoContato() {
 }
 
 function atualizarTipoContato() {
-  const tipo = document.getElementById('tipo-contato').value;
-  const titulo = document.getElementById('titulo-contato');
-  const labelNome = document.getElementById('label-nome-contato');
+  const tipoEl      = document.getElementById('tipo-contato');
+  const tipo        = tipoEl ? tipoEl.value : 'emergencia';
+  const titulo      = document.getElementById('titulo-contato');
+  const subtitulo   = document.getElementById('subtitulo-contato');
+  const labelNome   = document.getElementById('label-nome-contato');
+  const wrapCpfResp = document.getElementById('wrap-cpf-responsavel');
+  const cpfResp     = document.getElementById('responsavel_cpf');
+  const dnCampo     = document.getElementById('data_nascimento');
+
   if (tipo === 'responsavel') {
-    titulo.textContent = 'Responsável legal';
+    if (titulo)    titulo.textContent    = 'Responsável legal';
+    if (subtitulo) subtitulo.textContent = 'Obrigatório — preencha os dados do responsável legal pelo aluno.';
     if (labelNome) labelNome.textContent = 'Nome do responsável';
+    if (wrapCpfResp) wrapCpfResp.style.display = 'block';
+    if (cpfResp && dnCampo && dnCampo.value) {
+      const idade = calcularIdade(dnCampo.value);
+      cpfResp.required = idade < 18;
+    }
   } else {
-    titulo.textContent = 'Contato de emergência';
+    if (titulo)    titulo.textContent    = 'Contato de emergência';
+    if (subtitulo) subtitulo.textContent = 'Obrigatório — informe um contato de emergência.';
     if (labelNome) labelNome.textContent = 'Nome do contato';
+    if (wrapCpfResp) wrapCpfResp.style.display = 'none';
+    if (cpfResp)   cpfResp.required = false;
   }
 }
 
 document.getElementById('nivel').addEventListener('change', () => {
   atualizarCursos();
   atualizarSeries();
+  atualizarTurma();
 });
 
 window.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('nivel').value) {
     atualizarCursos();
     atualizarSeries();
+    atualizarTurma();
+    atualizarMatricula();
   }
   atualizarTipoContato();
 });

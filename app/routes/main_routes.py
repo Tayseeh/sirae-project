@@ -53,7 +53,6 @@ def _salvar_anexo_log(usuario_id):
 @main_bp.route('/')
 @login_required
 def dashboard():
-    # Admin vai para sua própria tela
     if current_user.perfil == 'admin':
         return redirect(url_for('admin.usuarios'))
 
@@ -62,63 +61,96 @@ def dashboard():
     filtro_status = request.args.get('status', '').strip()
     filtro_resp   = request.args.get('responsavel', '').strip()
 
-    # Todos veem todas as ocorrências
-    query = Ocorrencia.query
+    filtro_aplicado = any([filtro_nome, filtro_tipo, filtro_status, filtro_resp])
 
+    # Padrão: painel do próprio usuário, abertas + em andamento
+    if not filtro_aplicado:
+        filtro_resp   = str(current_user.id)
+        filtro_status = 'ativas'
+
+    # Se status selecionado sem responsável → aplica ao usuário logado
+    if filtro_status and not filtro_resp and not filtro_nome and not filtro_tipo:
+        filtro_resp = str(current_user.id)
+
+    # Resolve o usuário do contexto
+    u_ctx = db.session.get(Usuario, int(filtro_resp)) if filtro_resp else None
+
+    # Nome e subtítulo do painel
+    if u_ctx and u_ctx.id == current_user.id:
+        nome_contexto      = current_user.nome.split()[0]
+        subtitulo_contexto = 'Suas ocorrências no setor de apoio.'
+    elif u_ctx:
+        nome_contexto      = u_ctx.nome.split()[0]
+        subtitulo_contexto = f'Ocorrências sob responsabilidade de {u_ctx.nome}.'
+    else:
+        nome_contexto      = 'todos'
+        subtitulo_contexto = 'Visão geral de todos os registros do setor de apoio.'
+
+    # Total do usuário do contexto (todas, sem filtro de status)
+    q_usuario = Ocorrencia.query
+    if u_ctx:
+        q_usuario = q_usuario.filter(Ocorrencia.responsavel_id == u_ctx.id)
+    total_usuario = q_usuario.count()
+    total_geral   = Ocorrencia.query.count()
+
+    # Contadores do contexto (com filtros de nome/tipo aplicados)
+    q_ctx = Ocorrencia.query
+    if filtro_resp:
+        q_ctx = q_ctx.filter(Ocorrencia.responsavel_id == int(filtro_resp))
+    if filtro_nome:
+        from sqlalchemy import or_
+        q_ctx = q_ctx.join(Aluno).filter(
+            or_(Aluno.nome.ilike(f'%{filtro_nome}%'),
+                Aluno.matricula.ilike(f'%{filtro_nome}%'))
+        )
+    if filtro_tipo:
+        q_ctx = q_ctx.filter(Ocorrencia.tipo == filtro_tipo)
+    abertas    = q_ctx.filter(Ocorrencia.status == 'aberta').count()
+    acomp      = q_ctx.filter(Ocorrencia.status == 'em_andamento').count()
+    encerradas = q_ctx.filter(Ocorrencia.status == 'encerrada').count()
+    contexto_label = nome_contexto
+
+    # Query da listagem
+    query = Ocorrencia.query
     if filtro_nome:
         from sqlalchemy import or_
         query = query.join(Aluno).filter(
-            or_(
-                Aluno.nome.ilike(f'%{filtro_nome}%'),
-                Aluno.matricula.ilike(f'%{filtro_nome}%')
-            )
+            or_(Aluno.nome.ilike(f'%{filtro_nome}%'),
+                Aluno.matricula.ilike(f'%{filtro_nome}%'))
         )
     if filtro_tipo:
         query = query.filter(Ocorrencia.tipo == filtro_tipo)
-    if filtro_status:
+    if filtro_status == 'ativas':
+        query = query.filter(Ocorrencia.status.in_(['aberta', 'em_andamento']))
+    elif filtro_status:
         query = query.filter(Ocorrencia.status == filtro_status)
+    else:
+        query = query.filter(Ocorrencia.status != 'encerrada')
     if filtro_resp:
         query = query.filter(Ocorrencia.responsavel_id == int(filtro_resp))
 
-    # Paginação — 15 por página
+    # Paginação
     page = request.args.get('page', 1, type=int)
     paginacao = query.order_by(Ocorrencia.data_criacao.desc()).paginate(
         page=page, per_page=15, error_out=False
     )
     ocorrencias = paginacao.items
 
-    # Contadores
-    total      = Ocorrencia.query.count()
-    abertas    = Ocorrencia.query.filter_by(status='aberta').count()
-    acomp      = Ocorrencia.query.filter_by(status='em_andamento').count()
-    encerradas = Ocorrencia.query.filter_by(status='encerrada').count()
-    minhas     = Ocorrencia.query.filter_by(responsavel_id=current_user.id,
-                                            status='aberta').count() + \
-                 Ocorrencia.query.filter_by(responsavel_id=current_user.id,
-                                            status='em_andamento').count()
-
-    # Lista de atendentes/coordenadores para filtro
     atendentes = Usuario.query.filter(
         Usuario.perfil.in_(['atendente', 'coordenacao', 'pedagogia']),
         Usuario.ativo == True
     ).order_by(Usuario.nome).all()
 
-    # Ocorrências novas encaminhadas para mim (para o alerta)
-    novas_para_mim = Ocorrencia.query.filter(
-        Ocorrencia.responsavel_id == current_user.id,
-        Ocorrencia.status == 'em_andamento'
-    ).count()
-
-    ocorrencias_comigo = Ocorrencia.query.filter_by(responsavel_id=current_user.id).filter(Ocorrencia.status != 'encerrada').count()
     return render_template('dashboard.html',
         ocorrencias=ocorrencias,
         filtro_nome=filtro_nome, filtro_tipo=filtro_tipo,
         filtro_status=filtro_status, filtro_resp=filtro_resp,
-        total=total, abertas=abertas, acomp=acomp,
-        ocorrencias_comigo=ocorrencias_comigo,
-        encerradas=encerradas, minhas=minhas,
+        total_usuario=total_usuario, total_geral=total_geral,
+        abertas=abertas, acomp=acomp, encerradas=encerradas,
+        contexto_label=contexto_label,
+        nome_contexto=nome_contexto,
+        subtitulo_contexto=subtitulo_contexto,
         atendentes=atendentes,
-        novas_para_mim=novas_para_mim,
         paginacao=paginacao)
 
 
@@ -234,6 +266,15 @@ def encaminhar_ocorrencia(id):
         desc += f'. Motivo: {motivo}'
 
     _log(id, 'encaminhada', desc, anexo_log=_salvar_anexo_log(current_user.id))
+
+    # Cria notificação para o destinatário
+    from app.models.notificacao import Notificacao
+    db.session.add(Notificacao(
+        usuario_id=novo_resp.id,
+        ocorrencia_id=id,
+        mensagem=f'{current_user.nome} encaminhou a ocorrência #{id:04d} para você.'
+    ))
+
     db.session.commit()
 
     flash(f'Ocorrência encaminhada para {novo_resp.nome}!', 'success')
@@ -303,6 +344,14 @@ def editar_ocorrencia(id):
         ocorrencia.tipo      = novo_tipo
         ocorrencia.descricao = nova_desc
         if novo_status in ['aberta', 'em_andamento']:
+            # Impede volta para "aberta" se já existe algum andamento registrado
+            tem_andamento = any(
+                log.acao in ('atualizada', 'encaminhada')
+                for log in ocorrencia.logs
+            )
+            if novo_status == 'aberta' and tem_andamento:
+                flash('Não é possível voltar para "Aberta" após registro de andamentos.', 'warning')
+                novo_status = status_anterior
             ocorrencia.status = novo_status
 
         mudancas = []

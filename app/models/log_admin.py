@@ -1,5 +1,10 @@
 from app import db
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+BRASILIA = timezone(timedelta(hours=-3))
+
+def now_br():
+    return datetime.now(BRASILIA)
 
 
 class LogAdmin(db.Model):
@@ -11,7 +16,7 @@ class LogAdmin(db.Model):
     acao = db.Column(db.String(50), nullable=False)   # criou_usuario, editou_usuario, desativou_usuario
     alvo_nome = db.Column(db.String(100), nullable=True)  # nome do usuário afetado
     descricao = db.Column(db.Text, nullable=True)
-    data_hora = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    data_hora = db.Column(db.DateTime, default=now_br)
 
     usuario = db.relationship('Usuario', backref='logs_admin')
 

@@ -35,9 +35,11 @@
     <!-- Nível -->
     <select class="sel" name="nivel" style="width:140px;flex-shrink:0;min-width:140px">
       <option value="">Nível</option>
-      <option value="tecnico"   {% if filtro_nivel=='tecnico'   %}selected{% endif %}>Técnico</option>
-      <option value="graduacao" {% if filtro_nivel=='graduacao' %}selected{% endif %}>Graduação</option>
-      <option value="pos"       {% if filtro_nivel=='pos'       %}selected{% endif %}>Pós-graduação</option>
+      <option value="aprendizagem" {% if filtro_nivel=='aprendizagem' %}selected{% endif %}>Aprendizagem</option>
+      <option value="tecnico"      {% if filtro_nivel=='tecnico'      %}selected{% endif %}>Técnico</option>
+      <option value="graduacao"    {% if filtro_nivel=='graduacao'    %}selected{% endif %}>Graduação</option>
+      <option value="pos"          {% if filtro_nivel=='pos'          %}selected{% endif %}>Pós-graduação</option>
+      <option value="livre"        {% if filtro_nivel=='livre'        %}selected{% endif %}>Formação Continuada</option>
     </select>
 
     <button type="submit" class="btn btn-secondary btn-sm" style="flex-shrink:0">Filtrar</button>
@@ -78,7 +80,13 @@
           <strong>{{ a.nome }}</strong>
           {% if a.idade %}
           <small>{{ a.idade }} anos
-            
+            {% if a.menor_de_idade %}
+            <span style="display:inline-flex;align-items:center;
+                         background:var(--amber-soft);color:var(--amber-text);
+                         border:1px solid var(--amber-border);border-radius:20px;
+                         font-size:10px;font-weight:600;padding:1px 7px;margin-left:4px;
+                         vertical-align:middle">Menor</span>
+            {% endif %}
           </small>
           {% endif %}
         </td>
