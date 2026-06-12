@@ -20,7 +20,7 @@
  </div>
  <div class="metric">
    <div class="metric-label">Abertas</div>
-   <div class="metric-value" style="color:var(--green)">{{ abertas }}</div>
+   <div class="metric-value" style="color:#28a745">{{ abertas }}</div>
    <div class="metric-trend">{{ contexto_label }}</div>
  </div>
  <div class="metric">
@@ -71,9 +71,8 @@
  {% endfor %}
  </select>
 
- <button type="submit" class="btn btn-secondary btn-sm" style="flex-shrink:0">Filtrar</button>
- <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary btn-sm" style="flex-shrink:0">
-   Limpar filtros
+  <button type="submit" class="btn btn-secondary btn-sm" style="flex-shrink:0">Filtrar</button>
+ <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost btn-sm" style="flex-shrink:0">Limpar</a>
  </a>
  </div>
 </form>

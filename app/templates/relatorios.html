@@ -13,17 +13,32 @@
 </div>
 
 <!-- Métricas -->
-<div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+<div class="metrics" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
   <div class="metric">
-    <div class="metric-label">{% if filtro_tipo %}{{ filtro_tipo }}{% else %}Total{% endif %}</div>
+    <div class="metric-label">Total Geral</div>
     <div class="metric-value">{{ total }}</div>
   </div>
+  
+  <!-- NOVO: Abertas -->
+  <div class="metric">
+    <div class="metric-label">Abertas</div>
+    <div class="metric-value" style="color: #28a745">{{ abertas if abertas else 0 }}</div>
+  </div>
+
+  <!-- NOVO: Em Andamento -->
+  <div class="metric">
+    <div class="metric-label">Em Andamento</div>
+    <div class="metric-value" style="color: var(--blue)">{{ acomp if acomp else 0 }}</div>
+  </div>
+
   <div class="metric">
     <div class="metric-label">Encerradas</div>
-    <div class="metric-value" style="color:var(--green)">{{ encerradas }}</div>
+    <!-- Nota: No seu CSS original, --green era vermelho. Se quiser vermelho real, use var(--red) ou #b52a2a -->
+    <div class="metric-value" style="color: var(--red)">{{ encerradas }}</div>
   </div>
+
   <div class="metric">
-    <div class="metric-label">Taxa de resolução</div>
+    <div class="metric-label">Taxa de Resolução</div>
     <div class="metric-value">{{ taxa }}%</div>
     <div class="metric-trend">{% if taxa >= 70 %}bom desempenho{% else %}requer atenção{% endif %}</div>
   </div>
