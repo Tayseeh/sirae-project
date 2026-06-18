@@ -4,6 +4,7 @@ import time
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app
 from flask_login import login_required, current_user
 from app.models.aluno import Aluno, formatar_cpf, formatar_telefone, limpar_numeros
+from app.models.log_aluno import LogAluno
 from app import db
 from datetime import datetime, date
 
@@ -158,7 +159,7 @@ def listar():
     filtro_nivel = request.args.get('nivel', '').strip()
     filtro_turno = request.args.get('turno', '').strip()
 
-    query = Aluno.query.filter_by(ativo=True)
+    query = Aluno.query
     if filtro_nome:
         query = query.filter(Aluno.nome.ilike(f'%{filtro_nome}%'))
     if filtro_nivel:
@@ -245,22 +246,36 @@ def editar(id):
             else:
                 aluno.foto = caminho
 
+        log = LogAluno(aluno_id=aluno.id, usuario_id=current_user.id,
+                       acao='editou', descricao=f'Dados do aluno atualizados por {current_user.nome}.')
+        db.session.add(log)
         db.session.commit()
         flash('Dados atualizados com sucesso!', 'success')
         return redirect(url_for('alunos.perfil', id=aluno.id))
 
+    def _v(val):
+        if val is None or str(val) == 'None':
+            return ''
+        return str(val)
+
     return render_template('alunos/form.html', aluno=aluno, form={
-        'nome': aluno.nome, 'cpf': aluno.cpf, 'telefone': aluno.telefone,
-        'email': aluno.email,
+        'nome': _v(aluno.nome),
+        'cpf': _v(aluno.cpf),
+        'telefone': _v(aluno.telefone),
+        'email': _v(aluno.email),
         'data_nascimento': aluno.data_nascimento.strftime('%Y-%m-%d') if aluno.data_nascimento else '',
-        'matricula': aluno.matricula, 'nivel': aluno.nivel, 'serie': aluno.serie,
-        'turma': aluno.turma, 'turno': aluno.turno,
-        'responsavel_nome': aluno.responsavel_nome,
+        'matricula': _v(aluno.matricula),
+        'nivel': _v(aluno.nivel),
+        'curso': _v(aluno.curso),
+        'serie': _v(aluno.serie),
+        'turma': _v(aluno.turma),
+        'turno': _v(aluno.turno),
+        'responsavel_nome': _v(aluno.responsavel_nome),
         'tipo_contato': aluno.tipo_contato or 'emergencia',
-        'responsavel_parentesco': aluno.responsavel_parentesco,
-        'responsavel_cpf': aluno.responsavel_cpf,
-        'responsavel_contato': aluno.responsavel_contato,
-        'responsavel_email': aluno.responsavel_email,
+        'responsavel_parentesco': _v(aluno.responsavel_parentesco),
+        'responsavel_cpf': _v(aluno.responsavel_cpf),
+        'responsavel_contato': _v(aluno.responsavel_contato),
+        'responsavel_email': _v(aluno.responsavel_email),
     })
 
 
@@ -279,16 +294,34 @@ def busca_json():
         return jsonify([])
     from sqlalchemy import or_
     alunos = Aluno.query.filter(
-        Aluno.ativo == True,
         or_(
             Aluno.nome.ilike(f'%{q}%'),
             Aluno.matricula.ilike(f'%{q}%')
         )
-    ).order_by(Aluno.nome).limit(10).all()
+    ).order_by(Aluno.ativo.desc(), Aluno.nome).limit(10).all()
     return jsonify([{
         'id': a.id,
         'nome': a.nome,
         'matricula': a.matricula or '—',
+        'nivel': {'tecnico': 'Técnico', 'graduacao': 'Graduação', 'pos': 'Pós-graduação'}.get(a.nivel or '', a.nivel or ''),
+        'curso': a.curso or '',
         'serie': a.serie_completa,
         'foto': a.foto or '',
+        'ativo': a.ativo,
     } for a in alunos])
+
+
+@aluno_bp.route('/desativar/<int:id>', methods=['POST'])
+@login_required
+def desativar(id):
+    from app.utils import apenas_admin
+    aluno = Aluno.query.get_or_404(id)
+    aluno.ativo = not aluno.ativo
+    acao = 'reativou' if aluno.ativo else 'desativou'
+    status = 'reativado' if aluno.ativo else 'desativado'
+    log = LogAluno(aluno_id=aluno.id, usuario_id=current_user.id,
+                   acao=acao, descricao=f'Aluno {status} por {current_user.nome}.')
+    db.session.add(log)
+    db.session.commit()
+    flash(f'Aluno {aluno.nome} {status} com sucesso.', 'success')
+    return redirect(url_for('alunos.perfil', id=aluno.id))
