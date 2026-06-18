@@ -210,7 +210,12 @@ def nova_ocorrencia():
         flash(f'Ocorrência registrada para {aluno.nome}!', 'success')
         return redirect(url_for('main.dashboard'))
 
-    return render_template('cadastro.html')
+    # Pré-selecionar aluno se vier pelo atalho (?aluno_id=X)
+    aluno_pre = None
+    aluno_id_pre = request.args.get('aluno_id', '').strip()
+    if aluno_id_pre:
+        aluno_pre = db.session.get(Aluno, aluno_id_pre)
+    return render_template('cadastro.html', aluno_pre=aluno_pre)
 
 
 @main_bp.route('/ocorrencia/<int:id>')
