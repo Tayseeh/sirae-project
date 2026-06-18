@@ -8,7 +8,7 @@
  <h1>{% if aluno %}Editar dados de {{ aluno.nome }}{% else %}Cadastro de aluno{% endif %}</h1>
  <p class="subtitle">Campos com * são obrigatórios.</p>
  </div>
- <div style="display:flex;gap:10px">
+ <div class="page-head-actions" style="display:flex;gap:10px;flex-wrap:wrap">
  <a href="{{ url_for('alunos.listar') }}" class="btn btn-secondary">{{ icon('x', 13) }} Cancelar</a>
  <button type="submit" form="form-aluno" class="btn btn-primary">
  {% if aluno %}Salvar Alterações{% else %}Cadastrar Aluno{% endif %}
@@ -17,7 +17,7 @@
 </div>
 
 <form id="form-aluno" method="POST" enctype="multipart/form-data">
-<div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">
+<div class="form-main-grid">
 
  <!-- FOTO -->
  <div style="display:flex;flex-direction:column;gap:16px">
@@ -397,6 +397,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form');
   if (form) {
     form.addEventListener('submit', function(e) {
+      // Limpa validação customizada dos emails antes de enviar
+      const emailAluno = document.getElementById('email-aluno');
+      const emailResp  = document.getElementById('responsavel_email');
+      if (emailAluno) emailAluno.setCustomValidity('');
+      if (emailResp)  emailResp.setCustomValidity('');
+
       const dn = document.getElementById('data_nascimento');
       if (!dn || !dn.value) return;
       const idade = calcularIdade(dn.value);

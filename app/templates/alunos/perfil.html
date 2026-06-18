@@ -20,11 +20,11 @@
  </div>
  <div>
  <h1 style="margin-bottom:4px">{{ aluno.nome }}</h1>
+{% if not aluno.ativo %}
+<span style="display:inline-flex;align-items:center;background:#fce4e4;color:#b71c1c;border:1px solid #f5c6c6;border-radius:20px;font-size:11px;font-weight:600;padding:3px 12px;margin-left:8px;vertical-align:middle">Inativo</span>
+{% endif %}
  <p class="subtitle">
- {{ aluno.matricula or 'Sem matrícula' }}
- {% if aluno.serie %} · {{ aluno.serie }}{% endif %}
- {% if aluno.turma %} · Turma {{ aluno.turma }}{% endif %}
- {% if aluno.turno %} · {{ aluno.turno }}{% endif %}
+ {{ aluno.nivel|capitalize if aluno.nivel else '' }}{% if aluno.curso %} · {{ aluno.curso }}{% endif %}
  {% if aluno.menor_de_idade %}
  <span style="background:var(--amber-soft);color:var(--amber);
  padding:2px 8px;border-radius:999px;font-size:11px;
@@ -33,14 +33,21 @@
  </p>
  </div>
  </div>
- <div style="display:flex;gap:10px">
+ <div class="page-head-actions" style="display:flex;gap:10px;flex-wrap:wrap">
  <a href="{{ url_for('alunos.listar') }}" class="btn btn-secondary">{{ icon('arrow-left', 13) }} Voltar</a>
+ {% if aluno.ativo %}
  <a href="{{ url_for('alunos.editar', id=aluno.id) }}" class="btn btn-ghost">{{ icon('pencil', 13) }} Editar</a>
  <a href="{{ url_for('main.nova_ocorrencia') }}?aluno_id={{ aluno.id }}" class="btn btn-primary">{{ icon('plus', 13) }} Nova Ocorrência</a>
+ {% endif %}
+ <form method="POST" action="{{ url_for('alunos.desativar', id=aluno.id) }}" style="display:inline" onsubmit="return confirm('{{ 'Reativar' if not aluno.ativo else 'Desativar' }} o aluno {{ aluno.nome }}?')">
+   <button type="submit" class="btn" style="background:{{ '#2e7d32' if not aluno.ativo else '#b71c1c' }};color:white;border:none;cursor:pointer">
+     {{ icon('user-check' if not aluno.ativo else 'user-x', 13) }} {{ 'Reativar' if not aluno.ativo else 'Desativar' }}
+   </button>
+ </form>
  </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1.3fr;gap:20px;align-items:start">
+<div class="perfil-grid">
 
  <!-- Esquerda: dados -->
  <div style="display:flex;flex-direction:column;gap:16px">
@@ -118,13 +125,18 @@
  {% for o in aluno.ocorrencias | sort(attribute='data_criacao', reverse=true) %}
  <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:14px">
  <span class="audit-dot
- {% if o.status == 'aberta' %}amber
+ {% if o.status == 'aberta' %}green
  {% elif o.status == 'em_andamento' %}blue
- {% else %}green{% endif %}"
+ {% else %}red{% endif %}"
  style="margin-top:5px;flex-shrink:0"></span>
  <div style="flex:1">
  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
- <strong style="font-size:14px">{{ o.tipo }}</strong>
+ <strong style="font-size:14px">
+   <a href="{{ url_for('main.ver_ocorrencia', id=o.id) }}"
+      style="color:inherit;text-decoration:none">
+     #{{ o.id }} — {{ o.tipo }}
+   </a>
+ </strong>
  {% if o.status == 'aberta' %}
  <span class="pill pill-open">Aberta</span>
  {% elif o.status == 'em_andamento' %}
@@ -142,10 +154,8 @@
  <span style="font-size:11px;background:var(--blue-soft);color:var(--blue);
  padding:2px 8px;border-radius:999px;font-weight:700">→ {{ o.encaminhamento }}</span>
  {% endif %}
- {% if o.status != 'encerrada' %}
  <a href="{{ url_for('main.ver_ocorrencia', id=o.id) }}"
- style="font-size:12px;color:var(--green-text);text-decoration:none;margin-left:auto">{{ icon('eye', 12) }} Ver</a>
- {% endif %}
+ style="font-size:12px;color:var(--green-text);text-decoration:none;margin-left:auto">{{ icon('eye', 12) }} Ver ocorrência</a>
  </div>
  </div>
  </div>
@@ -159,4 +169,36 @@
  </div>
 
 </div>
+
+{% set logs = aluno.logs.limit(20).all() %}
+{% if logs %}
+<div class="panel" style="margin-top:20px">
+ <div class="panel-head">
+  <h2>Histórico de alterações</h2>
+ </div>
+ <div style="padding:4px 0">
+  {% for l in logs %}
+  <div style="padding:12px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:12px;align-items:flex-start">
+   <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;
+     background:{% if l.acao == 'desativou' %}#b71c1c{% elif l.acao == 'reativou' %}#2e7d32{% else %}#1a5ca8{% endif %}">
+   </span>
+   <div style="flex:1">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+     <span style="font-size:13px;font-weight:600;color:var(--text-1)">
+      {% if l.acao == 'desativou' %}Aluno desativado
+      {% elif l.acao == 'reativou' %}Aluno reativado
+      {% else %}Dados editados{% endif %}
+     </span>
+     <span style="font-size:11px;color:var(--muted)">{{ l.data_hora.strftime('%d/%m/%Y às %H:%M') }}</span>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-top:3px">
+     {{ l.descricao or '' }}
+    </div>
+   </div>
+  </div>
+  {% endfor %}
+ </div>
+</div>
+{% endif %}
+
 {% endblock %}

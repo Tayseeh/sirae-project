@@ -12,7 +12,7 @@
 </div>
 
 <!-- Cards de métricas personalizados pelo contexto -->
-<div class="metrics" style="grid-template-columns:repeat(5,1fr)">
+<div class="metrics metrics-5">
  <div class="metric">
    <div class="metric-label">{% if filtro_resp == current_user.id|string or not filtro_resp %}Meu total{% else %}Total{% endif %}</div>
    <div class="metric-value">{{ total_usuario }}</div>
